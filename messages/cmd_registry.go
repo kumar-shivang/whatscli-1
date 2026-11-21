@@ -28,6 +28,7 @@ func init() {
 		"style":     cmdStyle,
 		"edit":      cmdEdit,
 		"retry":     cmdRetry,
+		"reply":     cmdReply,
 		"more":      cmdMore,
 		"info":      cmdInfo,
 		"read":      cmdRead,
