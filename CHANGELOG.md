@@ -2,7 +2,7 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are git tags (`vX.Y.Z`).
 
-_Last updated: 2026-11-20T11:57:28+00:00 (fzf file picker, unreleased)_
+_Last updated: 2026-11-20T12:07:57+00:00 (/exit alias, unreleased)_
 
 ## [Unreleased]
 
@@ -14,6 +14,7 @@ _Last updated: 2026-11-20T11:57:28+00:00 (fzf file picker, unreleased)_
 
 ### Changed
 - `FZF_DEFAULT_OPTS` options that could send a file you did not confirm (`--select-1`), add output lines (`--print-query`, `--expect`) or restart the program (tmux, zellij, winpty) are overridden inside the picker.
+- `/exit` quits, the same as `/quit`.
 
 ## [1.6.6] - 2026-10-31
 
