@@ -59,6 +59,7 @@ type Keymap struct {
 
 type Ui struct {
 	ChatSidebarWidth int
+	MessageStyle     string // "bubbles" (default) or "classic" (one line per message)
 }
 
 type Colors struct {
@@ -76,6 +77,9 @@ type Colors struct {
 	UnreadCount     string
 	Positive        string
 	Negative        string
+	BubbleMe        string
+	BubbleContact   string
+	BubbleTime      string
 }
 
 var Config = IniFile{
@@ -116,6 +120,7 @@ var Config = IniFile{
 	},
 	&Ui{
 		ChatSidebarWidth: 30,
+		MessageStyle:     "bubbles",
 	},
 	&Colors{
 		Background:      "black",
@@ -132,6 +137,9 @@ var Config = IniFile{
 		UnreadCount:     "yellow",
 		Positive:        "green",
 		Negative:        "red",
+		BubbleMe:        "#005c4b",
+		BubbleContact:   "#202c33",
+		BubbleTime:      "silver",
 	},
 }
 
