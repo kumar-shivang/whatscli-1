@@ -376,3 +376,22 @@ func TestBubbleWithTicksIsRectangle(t *testing.T) {
 		t.Fatalf("bad bubbles: %+v", boxes)
 	}
 }
+
+// A message sent while the chat is open arrives through NewMessage and shows
+// its tick; the previous last message loses its own.
+func TestNewSentMessageShowsTick(t *testing.T) {
+	msgs := bubbleSamples(time.Now())[:3]
+	msgs[2].Status = messages.StatusRead // "Q beta", the last message so far
+	app, screen := runBubbleView(t, 80, 40, msgs, "x")
+	if !waitFor(app, func() bool { return messageWrapWidth == 80 && screenContains(screen, "20:10 ✓✓") }) {
+		t.Fatalf("last message has no ticks:\n%s", screenText(screen))
+	}
+	app.QueueUpdateDraw(func() { ctx.CurRegions = msgs })
+	UiHandler{}.NewMessage(messages.Message{Id: "new", FromMe: true, Text: "fresh one", Timestamp: uint64(time.Now().Unix()), Status: messages.StatusSent})
+	if !waitFor(app, func() bool { return screenContains(screen, "fresh one") && !screenContains(screen, "✓✓") }) {
+		t.Fatalf("old ticks kept or new message missing:\n%s", screenText(screen))
+	}
+	if strings.Count(screenText(screen), "✓") != 1 {
+		t.Fatalf("want exactly one ✓ on the new message:\n%s", screenText(screen))
+	}
+}
