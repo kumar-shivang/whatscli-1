@@ -25,6 +25,7 @@ func init() {
 		"quit":      cmdQuit,
 		"exit":      cmdQuit, // alias
 		"colorlist": cmdColorList,
+		"style":     cmdStyle,
 		"more":      cmdMore,
 		"info":      cmdInfo,
 		"read":      cmdRead,
