@@ -20,7 +20,7 @@ const emojiLimit = 10
 var (
 	emojiOnce  sync.Once
 	emojiNames []string          // ":name:" sorted shortest first, then by name
-	emojiByKey map[string]string // ":name:" -> emoji
+	emojiByKey map[string]string // ":name:" -> emoji (skin tone variants are not offered)
 )
 
 func loadEmoji() {
@@ -61,7 +61,7 @@ func emojiEntries(query string) []string {
 	seen := map[string]bool{}
 	for _, name := range emojiNames {
 		e := emojiByKey[name]
-		if seen[e] {
+		if seen[e] || dropSkinTones(e) != e {
 			continue
 		}
 		switch {

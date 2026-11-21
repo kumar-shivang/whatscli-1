@@ -14,7 +14,7 @@ import (
 func TestDisplayNameOneLine(t *testing.T) {
 	for in, want := range map[string]string{
 		"Asha":              "Asha",
-		"🤏🏻\n 🧚🏻‍♀️\n":      "🤏🏻 🧚🏻‍♀️",
+		"🤏🏻\n 🧚🏻‍♀️\n":      "🤏 🧚‍♀️",
 		"a\tb\r\nc":         "a b c",
 		"  spaced   name  ": "spaced name",
 	} {
@@ -81,5 +81,23 @@ func TestMessagesAlignInPane(t *testing.T) {
 	}
 	if me < 0 || strings.Index(lines[me+1], "second line") != strings.Index(lines[me], "Yaar") {
 		t.Errorf("line break not aligned:\n%s", screenText(screen))
+	}
+}
+
+func TestSkinTonesDropped(t *testing.T) {
+	if got := dropSkinTones("👍🏽 ok 🧚🏻‍♀️"); got != "👍 ok 🧚‍♀️" {
+		t.Errorf("dropSkinTones = %q", got)
+	}
+	if got := displayName("🤏🏻\n🧚🏻‍♀️"); got != "🤏 🧚‍♀️" {
+		t.Errorf("displayName = %q", got)
+	}
+	for _, e := range emojiEntries("thumbs") {
+		if dropSkinTones(e) != e {
+			t.Errorf("emoji list offers a skin tone variant: %q", e)
+		}
+	}
+	msg := messages.Message{Id: "1", FromMe: true, Text: "hi 👋🏾"}
+	if s := getTextMessageString(&msg, 0); strings.ContainsRune(s, 0x1F3FE) {
+		t.Errorf("message text keeps the skin tone: %q", s)
 	}
 }
