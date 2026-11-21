@@ -33,6 +33,7 @@ type General struct {
 	ImageExtensions     string // comma-separated; files /sendimage offers
 	VideoExtensions     string // comma-separated; files /sendvideo offers
 	AudioExtensions     string // comma-separated; files /sendaudio offers
+	SharePresence       bool   // online while active, typing sent and shown (messages/presence.go)
 }
 
 type Keymap struct {
@@ -55,6 +56,7 @@ type Keymap struct {
 	MessageInfo     string
 	MessageRevoke   string
 	PickFile        string
+	MessageRetry    string
 }
 
 type Ui struct {
@@ -97,6 +99,7 @@ var Config = IniFile{
 		ImageExtensions:     "jpg,jpeg,png,webp",
 		VideoExtensions:     "mp4,3gp,mov,mkv,webm",
 		AudioExtensions:     "mp3,ogg,opus,m4a,aac,amr,wav",
+		SharePresence:       true,
 	},
 	&Keymap{
 		SwitchPanels:    "Tab",
@@ -118,6 +121,7 @@ var Config = IniFile{
 		MessageRevoke:   "r",
 		MessageShow:     "s",
 		PickFile:        "Ctrl+o",
+		MessageRetry:    "t",
 	},
 	&Ui{
 		ChatSidebarWidth: 30,
