@@ -95,13 +95,16 @@ func TestSkinTonesDropped(t *testing.T) {
 	if got := displayName("🤏🏻\n🧚🏻‍♀️"); got != "🤏 🧚‍♀️" {
 		t.Errorf("displayName = %q", got)
 	}
+	if got := emojiEntries("point"); len(got) == 0 || strings.Count(strings.Join(got, ""), "☝") != 1 {
+		t.Errorf("☝ listed twice (with and without U+FE0F): %q", got)
+	}
 	for _, e := range emojiEntries("thumbs") {
 		if dropSkinTones(e) != e {
 			t.Errorf("emoji list offers a skin tone variant: %q", e)
 		}
 	}
 	msg := messages.Message{Id: "1", FromMe: true, Text: "hi 👋🏾"}
-	if s := getTextMessageString(&msg, 0); strings.ContainsRune(s, 0x1F3FE) {
+	if s := getTextMessageString(&msg, 0, ""); strings.ContainsRune(s, 0x1F3FE) {
 		t.Errorf("message text keeps the skin tone: %q", s)
 	}
 }

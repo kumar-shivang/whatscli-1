@@ -61,7 +61,11 @@ func emojiEntries(query string) []string {
 	seen := map[string]bool{}
 	for _, name := range emojiNames {
 		e := emojiByKey[name]
-		if seen[e] || dropSkinTones(e) != e {
+		// Only the default look of each emoji: no skin tone variants, and
+		// one entry for an emoji listed with and without its style
+		// marker (U+FE0F), such as ☝️ and ☝.
+		key := strings.ReplaceAll(e, "\uFE0F", "")
+		if seen[key] || dropSkinTones(e) != e {
 			continue
 		}
 		switch {
@@ -72,7 +76,7 @@ func emojiEntries(query string) []string {
 		default:
 			continue
 		}
-		seen[e] = true
+		seen[key] = true
 	}
 	entries := append(prefix, contains...)
 	if len(entries) > emojiLimit {
