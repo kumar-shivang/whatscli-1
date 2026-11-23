@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_call:
+    inputs:
+      tag:
+        description: "Existing tag to release"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -14,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+  RELEASE_TAG: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call') && inputs.tag || github.ref_name }}
 
 jobs:
   build:
@@ -31,6 +37,14 @@ jobs:
           - runs_on: ubuntu-24.04-arm
             goos: linux
             goarch: arm64
+            binary: whatscli
+          - runs_on: macos-latest
+            goos: darwin
+            goarch: arm64
+            binary: whatscli
+          - runs_on: macos-15-intel
+            goos: darwin
+            goarch: amd64
             binary: whatscli
           - runs_on: windows-latest
             goos: windows
@@ -89,7 +103,7 @@ jobs:
       - name: Package
         run: |
           mkdir -p release-assets
-          for d in linux-amd64 linux-arm64; do
+          for d in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
             chmod +x "bin/bin-$d/whatscli"
             tar -C "bin/bin-$d" -czf "release-assets/whatscli-${RELEASE_TAG}-$d.tar.gz" whatscli
           done

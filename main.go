@@ -8,6 +8,7 @@ import (
 
 	"github.com/PalWorks/whatscli/config"
 	"github.com/PalWorks/whatscli/messages"
+	"github.com/PalWorks/whatscli/update"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -21,6 +22,8 @@ func main() {
 	// T-2: Parse --debug flag before anything else.
 	debugMode := flag.Bool("debug", false, "Enable verbose WhatsApp protocol logging")
 	flag.Parse()
+
+	update.Current = appVersion()
 
 	err := config.InitConfig()
 	if err != nil {

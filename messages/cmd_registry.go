@@ -24,6 +24,7 @@ func init() {
 		"help":      cmdHelp,
 		"quit":      cmdQuit,
 		"exit":      cmdQuit, // alias
+		"update":    cmdUpdate,
 		"colorlist": cmdColorList,
 		"style":     cmdStyle,
 		"emoji":     cmdEmoji,
