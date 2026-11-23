@@ -28,6 +28,8 @@ func init() {
 		"style":     cmdStyle,
 		"edit":      cmdEdit,
 		"retry":     cmdRetry,
+		"mute":      cmdMute,
+		"unmute":    cmdUnmute,
 		"reply":     cmdReply,
 		"more":      cmdMore,
 		"info":      cmdInfo,

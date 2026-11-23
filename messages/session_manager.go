@@ -14,6 +14,7 @@ import (
 	_ "github.com/mattn/go-sqlite3" // SQLite driver
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 )
@@ -54,10 +55,12 @@ type SessionManager struct {
 	rootCancel context.CancelFunc
 
 	// Test seams; nil in production. Set before use, never mutated afterwards.
-	lidMapperOverride    lidMapper         // replaces client.Store.LIDs
-	groupInfoOverride    groupInfoFetcher  // replaces client.GetGroupInfo
-	contactNamesOverride contactNames      // replaces client.Store.Contacts
-	chatSettingsOverride chatSettingsStore // replaces client.Store.ChatSettings
+	lidMapperOverride    lidMapper                                                 // replaces client.Store.LIDs
+	groupInfoOverride    groupInfoFetcher                                          // replaces client.GetGroupInfo
+	contactNamesOverride contactNames                                              // replaces client.Store.Contacts
+	chatSettingsOverride chatSettingsStore                                         // replaces client.Store.ChatSettings
+	appStateSender       func(ctx context.Context, patch appstate.PatchInfo) error // replaces client.SendAppState; also skips the connected check
+	muteDone             func()                                                    // called when a /mute or /unmute send finishes
 }
 
 // initialize the SessionManager
