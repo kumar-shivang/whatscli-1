@@ -59,6 +59,8 @@ func (eh *eventHandler) Handle(evt interface{}) {
 		eh.sm.handleChatPresence(v)
 	case *events.Presence:
 		eh.sm.handlePresence(v)
+	case *events.Mute:
+		eh.handleMute(v)
 	case *events.HistorySync:
 		go eh.sm.processHistorySync(v.Data)
 	}

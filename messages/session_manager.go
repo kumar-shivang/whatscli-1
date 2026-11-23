@@ -43,7 +43,8 @@ type SessionManager struct {
 	mu              sync.RWMutex
 	priorityQueue   PriorityQueue
 	convByJID       map[string]*Conversation
-	debug           bool // T-2: enable verbose WhatsApp protocol logging
+	muteCache       muteCache // per-chat mute-until times (mute.go); own mutex
+	debug           bool      // T-2: enable verbose WhatsApp protocol logging
 
 	// Root context for work that outlives a command: downloads, backlog
 	// requests and polling, revoke requests. Cancelled by Shutdown. Created
@@ -53,9 +54,10 @@ type SessionManager struct {
 	rootCancel context.CancelFunc
 
 	// Test seams; nil in production. Set before use, never mutated afterwards.
-	lidMapperOverride    lidMapper        // replaces client.Store.LIDs
-	groupInfoOverride    groupInfoFetcher // replaces client.GetGroupInfo
-	contactNamesOverride contactNames     // replaces client.Store.Contacts
+	lidMapperOverride    lidMapper         // replaces client.Store.LIDs
+	groupInfoOverride    groupInfoFetcher  // replaces client.GetGroupInfo
+	contactNamesOverride contactNames      // replaces client.Store.Contacts
+	chatSettingsOverride chatSettingsStore // replaces client.Store.ChatSettings
 }
 
 // initialize the SessionManager
