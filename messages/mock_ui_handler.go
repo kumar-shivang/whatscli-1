@@ -19,6 +19,7 @@ type MockUiHandler struct {
 	HelpCalled  int
 	ClearCalled int
 	QuitCalled  int
+	Beeps       int // Beep calls
 	ColorCalled int
 	CmdsCalled  int
 	Styles      []string
@@ -58,6 +59,9 @@ func (m *MockUiHandler) UpdateQR(_ string, _ int, _ int) {}
 func (m *MockUiHandler) PrintCommands()                  { m.CmdsCalled++ }
 func (m *MockUiHandler) PrintHelp()                      { m.HelpCalled++ }
 func (m *MockUiHandler) Quit()                           { m.QuitCalled++ }
+
+// Beep counts the call in Beeps.
+func (m *MockUiHandler) Beep() { m.Beeps++ }
 
 // OpenFile records path and returns OpenErr.
 func (m *MockUiHandler) OpenFile(path string) error {

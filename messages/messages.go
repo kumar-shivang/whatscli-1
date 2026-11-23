@@ -37,6 +37,9 @@ type UiMessageHandler interface {
 	PrintCommands()
 	PrintHelp()
 	Quit()
+	// Beep rings the terminal bell through the UI's screen without blocking
+	// the caller.
+	Beep()
 }
 
 // data struct for current session status

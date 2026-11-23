@@ -245,6 +245,16 @@ func (u UiHandler) Quit() {
 	})
 }
 
+// Beep rings the terminal bell through the app's screen, so the bell byte is
+// written by tcell between frames instead of racing the UI's own output.
+func (u UiHandler) Beep() {
+	go ctx.App.QueueUpdate(func() {
+		if ctx.Screen != nil {
+			_ = ctx.Screen.Beep()
+		}
+	})
+}
+
 func (u UiHandler) UpdateQR(qr string, attempt int, timeout int) {
 	// Pre-calculate the content to ensure atomic rendering
 	// Translate ANSI codes in the QR string to tview tags to avoid using ANSIWriter during draw

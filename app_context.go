@@ -5,6 +5,7 @@ package main
 import (
 	"codeberg.org/tslocum/cbind"
 	"github.com/PalWorks/whatscli/messages"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -14,6 +15,7 @@ import (
 type AppContext struct {
 	// UI Widgets
 	App         *tview.Application
+	Screen      tcell.Screen // the app's screen (focusScreen); set before Run
 	TextView    *tview.TextView
 	TextInput   *tview.InputField
 	TopBar      *tview.TextView

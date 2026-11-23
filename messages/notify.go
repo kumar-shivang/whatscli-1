@@ -20,6 +20,23 @@ const (
 	FocusUnfocused
 )
 
+// SetTerminalFocus records whether the terminal window has focus. The UI
+// calls it from its event-reading goroutine when the terminal reports a
+// focus change; it is safe for concurrent use.
+func (sm *SessionManager) SetTerminalFocus(focused bool) {
+	state := FocusUnfocused
+	if focused {
+		state = FocusFocused
+	}
+	sm.focus.Store(int32(state))
+}
+
+// terminalFocus returns the last focus state the terminal reported, or
+// FocusUnknown if it has reported none.
+func (sm *SessionManager) terminalFocus() FocusState {
+	return FocusState(sm.focus.Load())
+}
+
 // maxNotifyAge is how old a message may be and still notify. It stops
 // history-sync bursts from producing notifications.
 const maxNotifyAge = 30 * time.Second

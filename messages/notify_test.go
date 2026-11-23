@@ -160,3 +160,18 @@ func TestNotifyBodyEscapesMarkupOnLinux(t *testing.T) {
 		t.Errorf("darwin: got %q, want unchanged", got)
 	}
 }
+
+func TestTerminalFocusState(t *testing.T) {
+	sm := &SessionManager{}
+	if got := sm.terminalFocus(); got != FocusUnknown {
+		t.Fatalf("new session manager focus = %v, want FocusUnknown", got)
+	}
+	sm.SetTerminalFocus(false)
+	if got := sm.terminalFocus(); got != FocusUnfocused {
+		t.Fatalf("after SetTerminalFocus(false) = %v, want FocusUnfocused", got)
+	}
+	sm.SetTerminalFocus(true)
+	if got := sm.terminalFocus(); got != FocusFocused {
+		t.Fatalf("after SetTerminalFocus(true) = %v, want FocusFocused", got)
+	}
+}

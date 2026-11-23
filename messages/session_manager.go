@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/PalWorks/whatscli/config"
 	"github.com/gen2brain/beeep"
@@ -44,8 +45,9 @@ type SessionManager struct {
 	mu              sync.RWMutex
 	priorityQueue   PriorityQueue
 	convByJID       map[string]*Conversation
-	muteCache       muteCache // per-chat mute-until times (mute.go); own mutex
-	debug           bool      // T-2: enable verbose WhatsApp protocol logging
+	muteCache       muteCache    // per-chat mute-until times (mute.go); own mutex
+	debug           bool         // T-2: enable verbose WhatsApp protocol logging
+	focus           atomic.Int32 // terminal focus as a FocusState (notify.go); zero is FocusUnknown
 
 	// Root context for work that outlives a command: downloads, backlog
 	// requests and polling, revoke requests. Cancelled by Shutdown. Created
