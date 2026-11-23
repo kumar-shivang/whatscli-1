@@ -30,6 +30,9 @@ type UiMessageHandler interface {
 	// SetMessageStyle switches the message pane between "bubbles" and
 	// "classic"; "" toggles between them.
 	SetMessageStyle(style string)
+	// OpenEmojiPicker opens the emoji picker over the main screen; a picked
+	// emoji goes into the input line at the cursor.
+	OpenEmojiPicker()
 	Clear()
 	// ReplaceText clears the message pane and prints text in a single draw.
 	ReplaceText(string)

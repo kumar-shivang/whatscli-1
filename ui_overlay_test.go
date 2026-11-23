@@ -17,7 +17,7 @@ func TestHelpTextListsEveryCommandAndKey(t *testing.T) {
 			t.Errorf("help lacks /%s", h.name)
 		}
 	}
-	for _, key := range []string{km.FindChat, km.FocusMessages, km.CommandQuit, km.MessageDownload, helpKey, "F1"} {
+	for _, key := range []string{km.FindChat, km.FocusMessages, km.CommandQuit, km.MessageDownload, km.EmojiPicker, helpKey, "F1"} {
 		if !strings.Contains(got, key) {
 			t.Errorf("help lacks key %q", key)
 		}
@@ -29,7 +29,7 @@ func TestWelcomeTextIsShort(t *testing.T) {
 	if n := strings.Count(got, "\n"); n > 11 {
 		t.Errorf("welcome card has %d lines; keep it to the essentials", n)
 	}
-	for _, want := range []string{"Welcome to WhatsCLI", config.Config.Keymap.FindChat, helpKey, "/help"} {
+	for _, want := range []string{"Welcome to WhatsCLI", config.Config.Keymap.FindChat, config.Config.Keymap.EmojiPicker, helpKey, "/help"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("welcome lacks %q", want)
 		}

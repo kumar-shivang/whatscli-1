@@ -26,6 +26,7 @@ func init() {
 		"exit":      cmdQuit, // alias
 		"colorlist": cmdColorList,
 		"style":     cmdStyle,
+		"emoji":     cmdEmoji,
 		"edit":      cmdEdit,
 		"retry":     cmdRetry,
 		"mute":      cmdMute,

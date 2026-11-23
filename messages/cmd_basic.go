@@ -193,6 +193,15 @@ func cmdStyle(sm *SessionManager, client *whatsmeow.Client, cmdName string, para
 	sm.uiHandler.SetMessageStyle(style)
 }
 
+// cmdEmoji opens the emoji picker. It takes no parameters.
+func cmdEmoji(sm *SessionManager, client *whatsmeow.Client, cmdName string, params []string) {
+	if len(params) > 0 {
+		sm.printCommandUsage(cmdName, "(no arguments)")
+		return
+	}
+	sm.uiHandler.OpenEmojiPicker()
+}
+
 // cmdColorList shows available colors.
 func cmdColorList(sm *SessionManager, client *whatsmeow.Client, cmdName string, params []string) {
 	sm.uiHandler.ShowColorList()

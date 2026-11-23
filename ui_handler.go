@@ -196,6 +196,11 @@ func (u UiHandler) SetMessageStyle(style string) {
 	go ctx.App.QueueUpdateDraw(func() { applyMessageStyle(style) })
 }
 
+// OpenEmojiPicker opens the emoji picker (the /emoji command).
+func (u UiHandler) OpenEmojiPicker() {
+	go ctx.App.QueueUpdateDraw(func() { openEmojiPicker(true) })
+}
+
 // applyMessageStyle sets the message style and redraws the open chat. UI
 // goroutine only.
 func applyMessageStyle(style string) {

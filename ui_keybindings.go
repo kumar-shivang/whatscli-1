@@ -397,6 +397,9 @@ func LoadShortcuts() {
 	if err := ctx.KeyBindings.Set(config.Config.Keymap.PickFile, handlePickFile); err != nil {
 		PrintErrorMsg("pick_file:", err)
 	}
+	if err := setEmojiPickerKey(ctx.KeyBindings, config.Config.Keymap.EmojiPicker); err != nil {
+		PrintErrorMsg("emoji_picker:", err)
+	}
 	// Toggle mouse binding (Hardcoded for now as it's a new feature)
 	ctx.KeyBindings.SetRune(tcell.ModCtrl, 'p', handleToggleMouse)
 

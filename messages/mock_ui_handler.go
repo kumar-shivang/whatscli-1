@@ -23,6 +23,7 @@ type MockUiHandler struct {
 	ColorCalled int
 	CmdsCalled  int
 	Styles      []string
+	EmojiOpened int      // OpenEmojiPicker calls
 	Activity    []string // "chat|text" per SetChatActivity
 	Presence    []string // "chat|text" per SetChatPresence
 	// OpenErr is returned by OpenFile.
@@ -45,6 +46,7 @@ func (m *MockUiHandler) SetStatus(s SessionStatus)        { m.Statuses = append(
 func (m *MockUiHandler) ShowColorList()                   { m.ColorCalled++ }
 func (m *MockUiHandler) Clear()                           { m.ClearCalled++ }
 func (m *MockUiHandler) SetMessageStyle(style string)     { m.Styles = append(m.Styles, style) }
+func (m *MockUiHandler) OpenEmojiPicker()                 { m.EmojiOpened++ }
 func (m *MockUiHandler) SetChatActivity(chat, text string) {
 	m.Activity = append(m.Activity, chat+"|"+text)
 }

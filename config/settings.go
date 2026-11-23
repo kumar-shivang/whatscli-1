@@ -60,6 +60,7 @@ type Keymap struct {
 	PickFile        string
 	MessageRetry    string
 	MessageQuote    string
+	EmojiPicker     string // opens and closes the emoji picker (ui_emoji_picker.go)
 }
 
 type Ui struct {
@@ -128,6 +129,7 @@ var Config = IniFile{
 		PickFile:        "Ctrl+o",
 		MessageRetry:    "t",
 		MessageQuote:    "q",
+		EmojiPicker:     "Ctrl+t",
 	},
 	&Ui{
 		ChatSidebarWidth: 30,
@@ -196,6 +198,17 @@ func GetSessionFilePath() string {
 		return sessionFilePath
 	}
 	return GetHomeDir() + ".whatscli.session"
+}
+
+// GetRecentEmojiFilePath returns the file that keeps the emoji picker's
+// recently used emoji (<XDG_STATE_HOME>/whatscli/recent_emoji), or "" when no
+// state directory can be found or made; the list is then not kept.
+func GetRecentEmojiFilePath() string {
+	p, err := xdg.StateFile("whatscli/recent_emoji")
+	if err != nil {
+		return ""
+	}
+	return p
 }
 
 // gets the OS home dir with a path separator at the end

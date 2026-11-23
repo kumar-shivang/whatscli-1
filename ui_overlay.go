@@ -27,7 +27,7 @@ const helpKey = "Ctrl+g"
 // overlay state; UI goroutine only.
 var (
 	pages        *tview.Pages
-	overlayName  string // "" or "help"
+	overlayName  string // "", "help" or emojiOverlay (ui_emoji_picker.go)
 	overlayView  *tview.TextView
 	overlayFocus tview.Primitive // focus to restore on close
 )
@@ -50,6 +50,7 @@ func helpText(km *config.Keymap, prefix string) string {
 		{km.SwitchPanels, "Next panel"},
 		{km.FocusMessages, "Select a message (then the keys below)"},
 		{km.PickFile, "Pick files to send (fzf; Tab marks several)"},
+		{km.EmojiPicker, "Emoji picker (also " + prefix + "emoji; Enter adds, Esc closes)"},
 		{"Up", "In an empty input: edit your last message (Esc cancels)"},
 		{"Shift+Enter / Alt+Enter", "New line in a message (also Ctrl+J; shown as ↵)"},
 		{"Esc", "Back to typing"},
@@ -99,6 +100,7 @@ func welcomeText(km *config.Keymap, prefix string) string {
 		{km.FindChat, "Find a chat by name"},
 		{"Type, then Enter", "Send a message to the open chat"},
 		{prefix, "Start a command; a list shows what you can do"},
+		{km.EmojiPicker, "Add emoji to your message"},
 		{km.FocusMessages, "Select a message to download, open or delete it"},
 		{helpKey + " or " + prefix + "help", "Every key and command"},
 	} {
@@ -150,6 +152,7 @@ func closeOverlay() {
 	}
 	pages.RemovePage(overlayName)
 	overlayName, overlayView = "", nil
+	activeEmojiPicker = nil
 	if overlayFocus != nil {
 		ctx.App.SetFocus(overlayFocus)
 	} else {
@@ -160,6 +163,9 @@ func closeOverlay() {
 // globalKeys handles F1 and the overlay's own keys before the key map.
 func globalKeys(ev *tcell.EventKey) *tcell.EventKey {
 	noteUserActive() // online while in use (ui_compose.go)
+	if overlayName == emojiOverlay {
+		return emojiPickerKeys(ev) // the picker has its own keys
+	}
 	if overlayName != "" {
 		switch {
 		case ev.Key() == tcell.KeyEscape, ev.Key() == tcell.KeyEnter, ev.Key() == tcell.KeyF1, ev.Key() == tcell.KeyCtrlG,
