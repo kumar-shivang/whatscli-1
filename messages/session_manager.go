@@ -45,6 +45,7 @@ type SessionManager struct {
 	priorityQueue   PriorityQueue
 	convByJID       map[string]*Conversation
 	muteCache       muteCache    // per-chat mute-until times (mute.go); own mutex
+	muteWarming     atomic.Bool  // a WarmMuteCache pass is running (mute.go)
 	debug           bool         // T-2: enable verbose WhatsApp protocol logging
 	focus           atomic.Int32 // terminal focus as a FocusState (notify.go); zero is FocusUnknown
 

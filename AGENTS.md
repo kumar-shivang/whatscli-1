@@ -2,7 +2,7 @@
 
 > Canonical instructions for every AI agent working in this repository (Claude Code, Gemini, Cursor, Copilot, Codex). `CLAUDE.md`, `GEMINI.md` and `.cursorrules` point here. Change rules here only.
 >
-> _Last updated: 2026-11-20T12:07:57+00:00 (/exit alias in cmd_basic.go)_
+> _Last updated: 2026-11-23T09:21:57+00:00 (notifications and mutes)_
 
 ## 1. Project
 

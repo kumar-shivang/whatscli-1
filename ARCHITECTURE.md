@@ -2,7 +2,7 @@
 
 System design of WhatsCLI as it is in the code at `v1.6.2`. Decisions and their reasons are in the maintainers' private decision log; agent rules in [AGENTS.md](AGENTS.md).
 
-_Last updated: 2026-10-31T16:55:57+00:00 (describes v1.6.2)_
+_Last updated: 2026-11-23T09:21:57+00:00 (notifications: mute state, focus wrapper, notify pipeline; rest describes v1.6.2)_
 
 ## 1. Components
 
@@ -47,6 +47,12 @@ _Last updated: 2026-10-31T16:55:57+00:00 (describes v1.6.2)_
 - `*events.Connected`, `Disconnected`, `LoggedOut`: update status; `Disconnected` starts `scheduleReconnect` unless logged out, already reconnecting or not started.
 - `*events.DeleteForMe`: `handleDeleteForMe` (`delete_for_me.go`) deletes the stored row (chat matched in either JID form), moves the chat preview to the newest remaining message and redraws the open chat.
 - `*events.HistorySync`: `processHistorySync` in a goroutine; `storeHistorySync` stores conversations and messages and redraws the open chat only when a row changed (`AddMessage` returns a `StoreResult`), then merges known `@lid` chats (`lid_merge.go`).
+
+**Notifications.** `processIncomingMessage` calls `notifyIncoming` (`notify_wiring.go`) on the message path, never on the UI goroutine. It drops what cannot notify (disabled, from me, older than 30 s), reads the mute state, and asks `notifier.decide` (`notify.go`) for a pop-up and/or sound: unfocused gives both, focused gives sound only, unknown focus keeps the old rule (open chat silent), and a per-chat throttle (`notification_timeout`) applies only when something would be shown. The pop-up runs through `popupFunc` (beeep) and the sound through `soundPlayer` (`sound.go`: built-in embedded file or `notification_sound`, played by `pw-play`, `paplay`, `aplay`, `afplay` or PowerShell, one at a time, bell as fallback); both run in their own goroutines tracked by `notifyWG`.
+
+**Terminal focus.** tcell reports focus changes only when asked. `focusScreen` (`ui_focus.go`) wraps the tcell screen, enables focus reporting, and turns `EventFocus` into `SessionManager.SetTerminalFocus` while passing every other event through untouched. Until the terminal reports once, the state is unknown. The bell goes through the screen so it is not mixed into a redraw.
+
+**Mute state.** The source of truth is whatsmeow's chat settings store, which records every mute including those from a full app-state sync. `mute.go` caches lookups by canonical chat JID (own mutex, never `sm.mu`) and keeps the cache current from `events.Mute`; for one-to-one chats the LID and phone-number forms are both checked. `/mute` and `/unmute` (`cmd_mute.go`) send an app-state patch so the phone follows. The chat list draws with `IsMutedCached`, which reads only the cache (a miss is not muted); `WarmMuteCache` fills missing entries in a goroutine after each `UpdateChatList` and redraws once, so drawing never waits on SQLite.
 
 **Chat list.** `loadRecentChats` imports the contact list (`importContacts`): a mapped `@lid` contact names its phone-number chat, an unmapped one stays `@lid`, only groups create new chats, then known `@lid` chats are merged.
 

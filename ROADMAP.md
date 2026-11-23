@@ -6,7 +6,7 @@
 >
 > Timestamps are ISO 8601 to the second, with the offset. "Raised" dates for rows 1 to 25 are 2026-10-31, the date of the independent review (REVIEW-3, an agent report that is not stored in the repository) and of the residual-risk notes written with the fixes; git has no earlier commit for them.
 >
-> _Last updated: 2026-11-20T11:57:28+00:00 (fzf file picker, row 37; Windows mintty gap, row 38)._
+> _Last updated: 2026-11-23T09:21:57+00:00 (notifications shipped on branch, unreleased)._
 
 ## 0. North star: every open item, one row each
 
@@ -103,6 +103,7 @@ Orientation only; detail is in CHANGELOG.md.
 | Find a chat by name: `Ctrl+f` or `/select <name>` with a drop-down of matches | v1.6.4 (2026-10-31) |
 | Welcome screen, `F1` help window, top bar with key hints; dead battery figure removed | v1.6.5 (2026-10-31) |
 | Edited messages update; `Ctrl+g` help key | v1.6.6 (2026-10-31) |
+| Notifications: on by default, focus-aware pop-up and sound, per-chat throttle, group titles, built-in sound, mutes that follow WhatsApp, `/mute` and `/unmute`, muted marker in the chat list | unreleased (2026-11-23) |
 
 ## 2. Next up
 

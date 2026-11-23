@@ -1,6 +1,6 @@
 # Notifications: design
 
-_Last updated: 2026-11-23T08:47:24+00:00 (default on). Branch: `feature/notifications`._
+_Last updated: 2026-11-23T09:21:57+00:00 (implemented on branch `feature/notifications`)._
 
 ## Why
 

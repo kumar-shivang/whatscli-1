@@ -66,14 +66,29 @@ func TestScrollPanelHit(t *testing.T) {
 }
 
 func TestChatTimeText(t *testing.T) {
-	if got := chatTimeText(&messages.Conversation{}); got != "" {
+	if got := chatTimeText(&messages.Conversation{}, false); got != "" {
 		t.Errorf("no time, no unread: %q", got)
 	}
-	got := chatTimeText(&messages.Conversation{Unread: 3, LastMsgTime: time.Now().Add(-5 * time.Minute).Unix()})
+	got := chatTimeText(&messages.Conversation{Unread: 3, LastMsgTime: time.Now().Add(-5 * time.Minute).Unix()}, false)
 	if !strings.HasPrefix(got, "([") || !strings.Contains(got, "]3[-])") || !strings.HasSuffix(got, " 5m") {
 		t.Errorf("unread and time: %q", got)
 	}
-	if got := chatTimeText(&messages.Conversation{Unread: 2}); !strings.Contains(got, "]2[-])") || strings.HasSuffix(got, " ") {
+	if got := chatTimeText(&messages.Conversation{Unread: 2}, false); !strings.Contains(got, "]2[-])") || strings.HasSuffix(got, " ") {
 		t.Errorf("unread only: %q", got)
+	}
+}
+
+func TestChatTimeTextMuted(t *testing.T) {
+	const mark = "\U0001F507 "
+	ts := time.Now().Add(-5 * time.Minute).Unix()
+	if got := chatTimeText(&messages.Conversation{LastMsgTime: ts}, true); got != mark+"5m" {
+		t.Errorf("muted, no unread: %q", got)
+	}
+	got := chatTimeText(&messages.Conversation{Unread: 3, LastMsgTime: ts}, true)
+	if !strings.HasPrefix(got, mark+"([") || !strings.HasSuffix(got, "]3[-]) 5m") {
+		t.Errorf("muted with unread: %q", got)
+	}
+	if got := chatTimeText(&messages.Conversation{LastMsgTime: ts}, false); strings.Contains(got, "\U0001F507") {
+		t.Errorf("unmuted has marker: %q", got)
 	}
 }

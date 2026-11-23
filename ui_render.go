@@ -199,17 +199,27 @@ func formatRelativeTime(timestamp int64) string {
 }
 
 // chatTimeText is the right-hand cell of a chat list row: the unread count,
-// if any, then the time of the last message.
-func chatTimeText(conv *messages.Conversation) string {
+// if any, then the time of the last message. A muted chat gets the
+// speaker-off symbol in front.
+func chatTimeText(conv *messages.Conversation, muted bool) string {
+	prefix := ""
+	if muted {
+		prefix = "\U0001F507 "
+	}
 	ts := formatRelativeTime(conv.LastMsgTime)
 	if conv.Unread == 0 {
-		return ts
+		return prefix + ts
 	}
 	unread := "([" + config.Config.Colors.UnreadCount + "]" + fmt.Sprint(conv.Unread) + "[-])"
 	if ts == "" {
-		return unread
+		return prefix + unread
 	}
-	return unread + " " + ts
+	return prefix + unread + " " + ts
+}
+
+// chatIsMuted reads the mute cache only, so drawing never waits on SQLite.
+func chatIsMuted(conv *messages.Conversation) bool {
+	return ctx.SessionManager != nil && ctx.SessionManager.IsMutedCached(conv.JID)
 }
 
 // RenderChatTable renders the status, chat and group tables from ctx.AllChats
@@ -247,7 +257,7 @@ func RenderChatTable() {
 	// are cut to the width left over by the widest time cell.
 	tsWidth := 0
 	for _, conv := range displayList {
-		if w := tview.TaggedStringWidth(chatTimeText(conv)); w > tsWidth {
+		if w := tview.TaggedStringWidth(chatTimeText(conv, chatIsMuted(conv))); w > tsWidth {
 			tsWidth = w
 		}
 	}
@@ -306,7 +316,7 @@ func RenderChatTable() {
 			SetSelectable(true)
 
 		// Time cell (right-aligned, dim) with the unread count in front
-		tsCell := tview.NewTableCell(chatTimeText(conv)).
+		tsCell := tview.NewTableCell(chatTimeText(conv, chatIsMuted(conv))).
 			SetAlign(tview.AlignRight).
 			SetSelectable(true).
 			SetExpansion(0)

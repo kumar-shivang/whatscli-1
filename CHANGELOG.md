@@ -2,17 +2,22 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are git tags (`vX.Y.Z`).
 
-_Last updated: 2026-11-20T12:07:57+00:00 (/exit alias, unreleased)_
+_Last updated: 2026-11-23T09:21:57+00:00 (notifications, unreleased)_
 
 ## [Unreleased]
 
 ### Added
+- Notifications are good enough to leave on: on by default for new configs, aware of terminal focus (unfocused: pop-up and sound, even for the open chat; focused: sound only; a terminal that does not report focus keeps the old behaviour of a silent open chat), throttled per chat by `notification_timeout`, with group pop-ups titled `Sender · Group` and a readable body for media messages. Under tmux add `set -g focus-events on`.
+- A short built-in notification sound (made by `tools/gen-notify-sound`), played with `pw-play`, `paplay`, `aplay`, `afplay` or PowerShell, with the terminal bell as fallback. New settings `play_sound` (default true) and `notification_sound` (path to your own file). `use_terminal_bell` now rings the bell instead of the sound; `play_sound = false` silences both.
+- Mutes follow WhatsApp: a chat muted on your phone, or by `/mute`, does not notify. `/mute [30m|8h|1d|1w]` (no duration: always; at most 10 years) and `/unmute` change the mute here and on your phone. Muted chats show the speaker-off symbol in the chat list.
 - File picker (issue #26): `/upload`, `/sendimage`, `/sendvideo` and `/sendaudio` typed without a path, or `Ctrl+o` (new key `pick_file`), open fzf over the files under `upload_search_path` (default: home). fzf is embedded as a Go library and the file list comes from `gocodewalker`, so nothing extra needs installing. Hidden files and `.gitignore`/`.ignore` matches are skipped. `Tab` marks several files; `Enter` sends them; `Esc` cancels.
 - `/sendimage`, `/sendvideo` and `/sendaudio` list only files with the extensions in the new `image_extensions`, `video_extensions` and `audio_extensions` settings. `Ctrl+o` lists every file and sends each as what it is.
 - After a file command with no path (for example `/upload ` picked from the command list), the drop-down shows `Enter  search files with fzf (or type a path)`; `Enter` or `Tab` on it opens the picker.
 - `/sendfile <chat-id> <cmd> <path>` sends a file to a given chat. The picker uses it so picked files go to the chat that was open when it opened, even if you switch chats while they upload.
 
 ### Changed
+- `enable_notifications` defaults to `true` for new configs (existing config files keep their value). `notification_timeout` is now applied, per chat.
+- The chat list reads mutes from memory only and fills them in the background, so drawing never waits on the database.
 - `FZF_DEFAULT_OPTS` options that could send a file you did not confirm (`--select-1`), add output lines (`--print-query`, `--expect`) or restart the program (tmux, zellij, winpty) are overridden inside the picker.
 - `/exit` quits, the same as `/quit`.
 

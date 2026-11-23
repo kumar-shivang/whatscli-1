@@ -140,6 +140,51 @@ func (sm *SessionManager) IsMuted(chatID string) bool {
 	return isMutedAt(sm.mutedUntil(jid), time.Now())
 }
 
+// IsMutedCached is IsMuted for the UI goroutine: it reads only the in-memory
+// cache (a miss counts as not muted) and never touches the store. WarmMuteCache
+// fills the cache off the UI goroutine. Chat list IDs are already canonical.
+func (sm *SessionManager) IsMutedCached(chatID string) bool {
+	jid, err := types.ParseJID(chatID)
+	if err != nil {
+		return false
+	}
+	until, ok := sm.muteCache.get(jid.String())
+	return ok && isMutedAt(until, time.Now())
+}
+
+// WarmMuteCache looks up, in a goroutine, the mute state of every listed chat
+// that is not cached yet, then calls done once if any entry was filled (so the
+// caller can redraw). It does nothing while a previous warm-up is running.
+// No lock is held during store lookups.
+func (sm *SessionManager) WarmMuteCache(chatIDs []string, done func()) {
+	var missing []types.JID
+	for _, id := range chatIDs {
+		jid, err := types.ParseJID(id)
+		if err != nil {
+			continue
+		}
+		if _, ok := sm.muteCache.get(jid.String()); !ok {
+			missing = append(missing, jid)
+		}
+	}
+	if len(missing) == 0 || !sm.muteWarming.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer sm.muteWarming.Store(false)
+		filled := false
+		for _, jid := range missing {
+			sm.mutedUntil(jid)
+			if _, ok := sm.muteCache.get(sm.canonicalChatJID(jid).String()); ok {
+				filled = true
+			}
+		}
+		if filled && done != nil {
+			done()
+		}
+	}()
+}
+
 // handleMute applies a mute/unmute app-state event and redraws the chat list.
 func (eh *eventHandler) handleMute(evt *events.Mute) {
 	if evt.JID.IsEmpty() {

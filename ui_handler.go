@@ -114,6 +114,17 @@ func (u UiHandler) UpdateChatList(pq []*messages.Conversation) {
 		})
 
 		RenderChatTable()
+
+		// Fill the mute cache off this goroutine, then redraw once.
+		if ctx.SessionManager != nil {
+			ids := make([]string, len(pq))
+			for i, c := range pq {
+				ids[i] = c.JID
+			}
+			ctx.SessionManager.WarmMuteCache(ids, func() {
+				go ctx.App.QueueUpdateDraw(RenderChatTable)
+			})
+		}
 	})
 }
 

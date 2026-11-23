@@ -205,3 +205,31 @@ func TestMutedUntilLazyFillDoesNotOverwriteNewerWrite(t *testing.T) {
 		t.Errorf("cache = %v, want %v", got, newer)
 	}
 }
+
+func TestIsMutedCachedNeverReadsStore(t *testing.T) {
+	sm, _ := newTestSessionManager(t)
+	a := pnJID("alice")
+	fs := &fakeChatSettings{until: map[string]time.Time{a.String(): store.MutedForever}}
+	sm.chatSettingsOverride = fs
+	if sm.IsMutedCached(a.String()) {
+		t.Error("cache miss must read as not muted")
+	}
+	if fs.callCount() != 0 {
+		t.Errorf("store calls = %d, want 0", fs.callCount())
+	}
+	done := make(chan struct{})
+	sm.WarmMuteCache([]string{a.String()}, func() { close(done) })
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("warm-up did not finish")
+	}
+	if !sm.IsMutedCached(a.String()) {
+		t.Error("muted chat should read as muted after warm-up")
+	}
+	calls := fs.callCount()
+	sm.WarmMuteCache([]string{a.String()}, func() { t.Error("done called with nothing to fill") })
+	if sm.IsMutedCached("not a jid") || fs.callCount() != calls {
+		t.Error("unparsable ID or second warm-up misbehaved")
+	}
+}
