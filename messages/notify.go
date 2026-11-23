@@ -3,6 +3,7 @@
 package messages
 
 import (
+	"strings"
 	"sync"
 	"time"
 )
@@ -78,4 +79,47 @@ func (n *notifier) decide(chat string, in notifyInput) (popup, sound bool) {
 	}
 	n.last[chat] = in.Now
 	return popup, sound
+}
+
+// maxBodyRunes is how many runes of message text a pop-up body keeps before
+// it is cut and marked with an ellipsis.
+const maxBodyRunes = 100
+
+// notifyTitle returns the pop-up title: the sender, the group, or both joined
+// with a middle dot. It returns "New message" when both are empty.
+func notifyTitle(sender, group string) string {
+	switch {
+	case sender != "" && group != "":
+		return sender + " \u00b7 " + group
+	case sender != "":
+		return sender
+	case group != "":
+		return group
+	default:
+		return "New message"
+	}
+}
+
+// notifyBody returns the pop-up body for a message. It uses text, or preview
+// (for example "Photo") when text is blank, and "New message" when both are
+// empty. Line breaks become spaces, the text is cut to maxBodyRunes runes with
+// an ellipsis, and on linux (where the notification daemon renders markup)
+// &, < and > are escaped. Quotes are left alone because daemons would show
+// &#34; literally.
+func notifyBody(text, preview, goos string) string {
+	body := text
+	if strings.TrimSpace(body) == "" {
+		body = preview
+	}
+	if strings.TrimSpace(body) == "" {
+		return "New message"
+	}
+	body = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(body)
+	if r := []rune(body); len(r) > maxBodyRunes {
+		body = string(r[:maxBodyRunes]) + "\u2026"
+	}
+	if goos == "linux" {
+		body = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(body)
+	}
+	return body
 }

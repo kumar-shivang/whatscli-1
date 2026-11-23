@@ -4,6 +4,7 @@ package messages
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -98,5 +99,64 @@ func TestDecideBurstAcrossChats(t *testing.T) {
 	}
 	if count != 5 {
 		t.Errorf("got %d notifications, want 5", count)
+	}
+}
+
+func TestNotifyTitle(t *testing.T) {
+	tests := []struct {
+		sender, group, want string
+	}{
+		{"Asha", "", "Asha"},
+		{"Asha", "Family", "Asha · Family"},
+		{"", "Family", "Family"},
+		{"", "", "New message"},
+	}
+	for _, tt := range tests {
+		if got := notifyTitle(tt.sender, tt.group); got != tt.want {
+			t.Errorf("notifyTitle(%q, %q) = %q, want %q", tt.sender, tt.group, got, tt.want)
+		}
+	}
+}
+
+func TestNotifyBody(t *testing.T) {
+	const goos = "darwin"
+	long := strings.Repeat("x", 150)
+	devanagari := strings.Repeat("क", 99)
+	tests := []struct {
+		name, text, preview, want string
+	}{
+		{"text", "hi", "", "hi"},
+		{"preview fallback", "", "Photo", "Photo"},
+		{"nothing", "", "", "New message"},
+		{"newlines flattened", "a\nb\r\nc", "", "a b c"},
+		{"devanagari unchanged", devanagari, "", devanagari},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := notifyBody(tt.text, tt.preview, goos); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+
+	got := []rune(notifyBody(long, "", goos))
+	if len(got) != 101 {
+		t.Fatalf("truncated length = %d runes, want 101", len(got))
+	}
+	if got[100] != '…' {
+		t.Errorf("last rune = %q, want the ellipsis", got[100])
+	}
+	if string(got[:100]) != strings.Repeat("x", 100) {
+		t.Errorf("kept text is wrong")
+	}
+}
+
+func TestNotifyBodyEscapesMarkupOnLinux(t *testing.T) {
+	const in = "<b>hi</b> & co"
+	if got := notifyBody(in, "", "linux"); got != "&lt;b&gt;hi&lt;/b&gt; &amp; co" {
+		t.Errorf("linux: got %q", got)
+	}
+	if got := notifyBody(in, "", "darwin"); got != in {
+		t.Errorf("darwin: got %q, want unchanged", got)
 	}
 }
