@@ -2,7 +2,7 @@
 
 > This document describes the key development patterns, conventions, and technical skills required to effectively contribute to WhatsCLI. It serves as a deep-dive companion to `CONTRIBUTING.md`. Rules live in [AGENTS.md](AGENTS.md); design in [ARCHITECTURE.md](ARCHITECTURE.md).
 >
-> _Last updated: 2026-11-23T09:35:09+00:00 (UiMessageHandler listing: 22 methods, including Beep)_
+> _Last updated: 2026-11-23T09:57:37+00:00 (UiMessageHandler listing: 23 methods, including OpenEmojiPicker)_
 
 ## Required Skills
 
@@ -83,7 +83,7 @@ case command := <-sm.CommandChannel:
 
 ### Backend → UI (Updates)
 
-The `UiMessageHandler` interface (22 methods) allows the backend to update the UI without importing tview:
+The `UiMessageHandler` interface (23 methods) allows the backend to update the UI without importing tview:
 
 ```go
 type UiMessageHandler interface {
@@ -102,6 +102,7 @@ type UiMessageHandler interface {
     SetChatActivity(chat, text string)
     SetChatPresence(chat, text string)
     SetMessageStyle(style string)
+    OpenEmojiPicker()
     Clear()
     ReplaceText(string)
     UpdateQR(qr string, attempt int, timeout int)
@@ -306,7 +307,7 @@ type MockUiHandler struct {
     // ... captures all UI calls for assertions
 }
 
-// ... implements all 22 UiMessageHandler methods
+// ... implements all 23 UiMessageHandler methods
 ```
 
 ### Race Detection

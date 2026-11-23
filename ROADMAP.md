@@ -6,7 +6,7 @@
 >
 > Timestamps are ISO 8601 to the second, with the offset. "Raised" dates for rows 1 to 25 are 2026-10-31, the date of the independent review (REVIEW-3, an agent report that is not stored in the repository) and of the residual-risk notes written with the fixes; git has no earlier commit for them.
 >
-> _Last updated: 2026-11-23T09:21:57+00:00 (notifications shipped on branch, unreleased)._
+> _Last updated: 2026-11-23T09:57:37+00:00 (emoji picker shipped on branch, unreleased; row 40 opened)._
 
 ## 0. North star: every open item, one row each
 
@@ -18,6 +18,7 @@ Grouped by state (Open, Decision, Waiting, Blocked, Deferred, Recurring), then b
 |---|---|---|---|---|---|---|---|---|
 | 14 | §3.6 | P2 | **Open** | S | M | 2026-10-31 | Partly verified 2026-10-31: the phone answered a backlog request in a phone-number chat; no `@lid` chat was available to test. [Unverified] The phone may not answer an ON_DEMAND backlog request when the anchor chat is a phone-number JID but its own record is LID. `/backlog` would silently do nothing there. | Verify with checklist step 17 on a live account; if no reply, send the anchor in LID form via `GetLIDForPN`. [§8.14](#814-r2-backlog-anchor-jid-form) |
 | 38 | §3.4 | P3 | **Open** | S | L | 2026-11-20 | [Unverified] On Windows under mintty (Git Bash) 3.4.5 or later without `MSYS=enable_pcon`, the embedded fzf restarts the program through winpty when the file picker opens; `--no-winpty` covers only older mintty. Not run on Windows. | Run the picker on Windows Terminal and on mintty; if the restart shows, document Windows Terminal only or set `MSYS=enable_pcon` for the child. |
+| 40 | §3.4 | P3 | **Open** | S | L | 2026-11-23 | [Unverified] The emoji picker draws every emoji in a 3-column cell and trusts the width tables in the binary (uniseg) to say 2 columns. Some terminals draw emoji that carry U+FE0F (red heart, smiling face) 1 column wide, which would shift the rest of that grid row. Only the simulated screen was tested. | Open the picker (`Ctrl+t`) in GNOME Terminal, Konsole, kitty, Alacritty, Windows Terminal and tmux; if a row shifts, leave out emoji whose base character has text presentation by default, or draw each cell separately. |
 | 8 | §3.1 | P2 | **Deferred** | M | M | 2026-10-31 | Releases no longer include macOS, Raspberry Pi (armv5) or a Homebrew tap (owner decision D4). macOS and 32-bit Pi users find no asset. | Back when someone asks: macOS = add a `macos-latest` matrix entry; Homebrew = add a tap job with a token scoped to the tap repository; armv5 needs a cross C toolchain. [§8.8](#88-release-targets-dropped) |
 | 18 | §3.2 | P3 | **Deferred** | S | L | 2026-10-31 | R3: each revoke by a non-sender in a group costs one group info request, and a non-admin can trigger these by sending fake revokes. | Cache admin lists per group for some minutes if rate limits appear in logs. Accepted for now. |
 | 19 | §3.2 | P3 | **Deferred** | S | L | 2026-10-31 | R4: a revoke that arrives before its target (offline queue order) is ignored, so the message stays visible. | Remember pending revokes briefly. Accepted for now. |
@@ -104,6 +105,7 @@ Orientation only; detail is in CHANGELOG.md.
 | Welcome screen, `F1` help window, top bar with key hints; dead battery figure removed | v1.6.5 (2026-10-31) |
 | Edited messages update; `Ctrl+g` help key | v1.6.6 (2026-10-31) |
 | Notifications: on by default, focus-aware pop-up and sound, per-chat throttle, group titles, built-in sound, mutes that follow WhatsApp, `/mute` and `/unmute`, muted marker in the chat list | unreleased (2026-11-23) |
+| Emoji picker: `Ctrl+t` or `/emoji`, category tabs with Recent, search by name, no skin tones | unreleased (2026-11-23) |
 
 ## 2. Next up
 
@@ -135,6 +137,8 @@ Earlier status, kept for the record:
 |---|---|---|---|---|---|
 | 14 | R2 backlog anchor JID form | §3.6 | **Open**: verify live | S | M |
 | 38 | Picker on Windows mintty (winpty restart) | §3.4 | **Open**: verify on Windows | S | L |
+| 40 | Emoji picker grid width in real terminals | §3.4 | **Open**: verify in terminals | S | L |
+| 39 | WhatsApp-style emoji picker without skin tones | §3.4 | **Done** 2026-11-23 (unreleased) | M | M |
 | 37 | fzf file picker for sending files (issue #26) | §3.4 | **Done** 2026-11-20 (unreleased) | M | M |
 | 8 | Release targets dropped (finding 8) | §3.1 | **Deferred**: owner decision D4 | M | M |
 | 18 | R3 admin revoke lookup cost | §3.2 | **Deferred** | S | L |
@@ -190,7 +194,7 @@ Rows 7, 9, 11, 13, 21, 25, 32, 33, 35 (open: 21, 35, both deferred). Row 13 ship
 
 ### 3.4 UI
 
-Rows 5, 6, 10, 24, 34, 36, 37 (done) and 38 (open). Rows 5, 6 and 10 came from `UiHandler` queuing work with `go QueueUpdateDraw`; row 10 was fixed with `NewScreenWithStatus` (option A); an ordered update channel remains a possible later refactor (review option B).
+Rows 5, 6, 10, 24, 34, 36, 37, 39 (done) and 38, 40 (open). Rows 5, 6 and 10 came from `UiHandler` queuing work with `go QueueUpdateDraw`; row 10 was fixed with `NewScreenWithStatus` (option A); an ordered update channel remains a possible later refactor (review option B).
 
 ### 3.5 Docs and repository hygiene
 
@@ -225,6 +229,7 @@ Rows 14, 15. No test talks to WhatsApp; this area exists to keep that gap visibl
 | Local check of the revoke time window | The server decides and its error is shown; the exact window is [Unverified] |
 | Opening Office files, HTML, SVG or archives from `open` | They can run macros or scripts (D15); users open them by hand |
 | Publishing to the AUR from CI | Would need an SSH key secret (D5) |
+| Emoji skin tones, ZWJ sequences (families, professions), keycaps, custom emoji, sticker and GIF panels in the emoji picker | Terminals draw joined and modified emoji with inconsistent widths; the owner asked for the default look only (row 39). Search uses CLDR names only, no extra keywords |
 | Reaction display, voice recording, sticker sending, reply threading, status viewing | Listed as ideas in the old README "inferred roadmap"; no demand or owner decision recorded. Re-raise with a row number if wanted |
 
 ## 6. Where the detail lives

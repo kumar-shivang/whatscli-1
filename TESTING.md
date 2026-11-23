@@ -2,7 +2,7 @@
 
 How WhatsCLI is tested, and the live-account checklist that gates every release. The checklist is ROADMAP row 15 (Recurring).
 
-_Last updated: 2026-11-23T09:35:20+00:00 (MockUiHandler implements 22 methods)_
+_Last updated: 2026-11-23T09:57:37+00:00 (emoji picker tests and checklist step 36; MockUiHandler implements 23 methods)_
 
 ## 1. Commands
 
@@ -59,12 +59,15 @@ Last verified 2026-10-31 at `v1.6.2` (`ad7df87`): build, vet and `go test -race 
 | `messages/display_names_test.go` | 3 | Sender label order (saved name, phone number, `~PushName`, LID), contact saved under the LID, no stores, `getMessages` labels without changing stored rows |
 | `messages/edit_incoming_test.go` | 3 | Edits by the sender and by our other device, refused edits (other sender, other chat, not yours, unknown, revoked), edit across LID and phone-number forms |
 | `ui_helpers_test.go` | 1 | `chatForID` |
+| `ui_emoji_picker_test.go` | 14 | Emoji data (groups, no skin tone, ZWJ, keycap or tag entries, no duplicates, every width 2), search ranking, Recent list (add, dedupe, cap 24, file round trip, corrupt file), grid navigation, tabs, tab labels that fit, drawing at 40, 80 and 120 columns, three picks in a row at the cursor, toggle key and Esc, mouse, Recent updated live, edit and reply modes kept, `/emoji` brings the draft back. Uses a temporary Recent file, never the real state folder |
+| `messages/cmd_emoji_test.go` | 1 | `/emoji` is registered, opens the picker, refuses arguments |
+| `tools/gen-emoji-data/main_test.go` | 1 | Generator keeps fully-qualified emoji and drops skin tones, ZWJ, keycap and tag sequences, components, bad lines |
 
 ## 4. Conventions
 
 - Table-driven tests preferred (`storage_test.go`, `media_safety_test.go` are examples).
 - Storage tests use in-memory SQLite: `db, _ := sql.Open("sqlite3", ":memory:")`, then `md.InitWithDB(db)`. Never call `Init()` in tests; it opens the real config path.
-- Use `MockUiHandler` (`messages/mock_ui_handler.go`) for backend tests; it implements all 22 `UiMessageHandler` methods.
+- Use `MockUiHandler` (`messages/mock_ui_handler.go`) for backend tests; it implements all 23 `UiMessageHandler` methods.
 - No test talks to WhatsApp. Use the seams: `mediaDownloader` (fake downloads), `lidMapperOverride` (fake LID store), `groupInfoOverride` (fake group metadata), `webMessageParser` (history sync without a connected client; a zero `whatsmeow.Client{}` parses incoming messages).
 - Every security rule gets a negative test (what must not happen). Authors of the revoke, open and path fixes also ran mutation checks: reverting each control made at least one test fail. Repeat that when you change a control.
 - All tests run with `-race`.
@@ -123,6 +126,7 @@ Run before every tagged release (ROADMAP row 15). Runs so far are recorded in Ta
 | 33 | Find a chat | Press `Ctrl+f`, type part of a name, press `Down` and `Enter`; then enter `/select zzzq` | The list narrows as you type and the chosen chat opens; `No chat matches "zzzq"` is printed |
 | 34 | Welcome and help | Start WhatsCLI; press `Ctrl+g` (or `F1`, or enter `/help`), scroll, press `Esc` | The pane shows "Welcome to WhatsCLI" with five keys; the top bar shows the version, online or offline, and the main keys, with no battery figure; the help window lists every command and closes on `Esc`, focus back on the input |
 | 35 | Edited message | Send a message to "Message yourself" from the phone, then edit it on the phone | WhatsCLI shows the new text followed by `(edited)` |
+| 36 | Emoji picker | Press `Ctrl+t`; look at each tab; type `heart`; press `Enter` three times while moving `Right`; press `Esc` twice; send the message | Grid rows line up in your terminal (note any row that shifts: ROADMAP row 40); three hearts in the input in order; the first `Esc` clears the search, the second closes; the Recent tab shows them next time |
 
 **Table T3: Run record (copy one row per run)**
 
