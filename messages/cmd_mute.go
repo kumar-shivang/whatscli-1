@@ -18,6 +18,10 @@ import (
 // muteSendTimeout bounds the app-state patch sent by /mute and /unmute.
 const muteSendTimeout = 15 * time.Second
 
+// maxMuteDuration is the longest finite mute accepted (ten years); it also
+// keeps Nd/Nw products far from int64 overflow.
+const maxMuteDuration = 10 * 365 * 24 * time.Hour
+
 // parseMuteDuration parses a /mute argument. The empty string means forever
 // (0). It accepts Go durations plus whole-number Nd (days) and Nw (weeks);
 // zero, negative and malformed values are errors naming the input.
@@ -36,6 +40,9 @@ func parseMuteDuration(s string) (time.Duration, error) {
 		if s[n-1] == 'w' {
 			unit = 7 * 24 * time.Hour
 		}
+		if v > uint64(maxMuteDuration/unit) {
+			return 0, bad
+		}
 		d = time.Duration(v) * unit
 	} else {
 		var err error
@@ -43,7 +50,7 @@ func parseMuteDuration(s string) (time.Duration, error) {
 			return 0, bad
 		}
 	}
-	if d <= 0 {
+	if d <= 0 || d > maxMuteDuration {
 		return 0, bad
 	}
 	return d, nil

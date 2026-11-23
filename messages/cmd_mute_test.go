@@ -25,7 +25,7 @@ func TestParseMuteDuration(t *testing.T) {
 			t.Errorf("parseMuteDuration(%q) = %v, %v; want %v", in, got, err, want)
 		}
 	}
-	for _, in := range []string{"0", "-1h", "abc", "1.5d", "d"} {
+	for _, in := range []string{"0", "-1h", "abc", "1.5d", "d", "99999999d", "99999999w"} {
 		if _, err := parseMuteDuration(in); err == nil || !strings.Contains(err.Error(), in) {
 			t.Errorf("parseMuteDuration(%q) error = %v, want one naming the input", in, err)
 		}
@@ -53,7 +53,7 @@ func TestCmdMuteNoOpenChat(t *testing.T) {
 	sm, ui, sent, _ := muteHarness(t, nil)
 	sm.currentReceiver = ""
 	cmdMute(sm, &whatsmeow.Client{}, "mute", nil)
-	if len(*sent) != 0 || len(ui.Texts)+len(ui.Errors) == 0 {
+	if len(*sent) != 0 {
 		t.Fatalf("sent=%d texts=%v errors=%v", len(*sent), ui.Texts, ui.Errors)
 	}
 	if len(ui.Errors) == 0 || !strings.Contains(ui.Errors[0].Error(), "open a chat first") {
@@ -85,6 +85,9 @@ func TestCmdMuteSuccess(t *testing.T) {
 	}
 	if !(*sent)[0].Mutations[0].Value.GetMuteAction().GetMuted() {
 		t.Error("patch is not a mute")
+	}
+	if len(ui.Texts) != 1 || !strings.Contains(ui.Texts[0], "muted until "+time.Now().Add(8*time.Hour).Format("2006-01-02")) {
+		t.Errorf("confirmation = %v", ui.Texts)
 	}
 	if !sm.IsMuted(muteTestJID) || len(ui.Texts) != 1 || len(ui.ChatLists) != 1 {
 		t.Fatalf("muted=%v texts=%v lists=%d", sm.IsMuted(muteTestJID), ui.Texts, len(ui.ChatLists))
