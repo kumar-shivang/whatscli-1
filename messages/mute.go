@@ -37,6 +37,21 @@ func (c *muteCache) get(key string) (time.Time, bool) {
 	return t, ok
 }
 
+// setIfAbsent stores t only when key has no entry and returns the value now
+// cached, so a lazy store fill never overwrites a newer event write.
+func (c *muteCache) setIfAbsent(key string, t time.Time) time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if cur, ok := c.m[key]; ok {
+		return cur
+	}
+	if c.m == nil {
+		c.m = make(map[string]time.Time)
+	}
+	c.m[key] = t
+	return t
+}
+
 func (c *muteCache) set(key string, t time.Time) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -106,8 +121,7 @@ func (sm *SessionManager) mutedUntil(chat types.JID) time.Time {
 			best = cs.MutedUntil
 		}
 	}
-	sm.muteCache.set(key, best)
-	return best
+	return sm.muteCache.setIfAbsent(key, best)
 }
 
 // setMutedUntil records a chat's mute end (zero to unmute) under its
@@ -128,10 +142,15 @@ func (sm *SessionManager) IsMuted(chatID string) bool {
 
 // handleMute applies a mute/unmute app-state event and redraws the chat list.
 func (eh *eventHandler) handleMute(evt *events.Mute) {
+	if evt.JID.IsEmpty() {
+		return
+	}
+	// Mirrors whatsmeow appstate.go: muted=false clears the mute, a negative
+	// end timestamp means forever, anything else (including a missing end)
+	// is time.UnixMilli(end), which is what whatsmeow persists.
 	var until time.Time
 	if a := evt.Action; a != nil && a.GetMuted() {
-		end := a.GetMuteEndTimestamp()
-		if end < 0 || a.MuteEndTimestamp == nil {
+		if end := a.GetMuteEndTimestamp(); end < 0 {
 			until = store.MutedForever
 		} else {
 			until = time.UnixMilli(end)

@@ -21,6 +21,10 @@ type fakeChatSettings struct {
 	mu    sync.Mutex
 	until map[string]time.Time
 	calls int
+	// block, when set, is received from before the lookup returns.
+	block chan struct{}
+	// started is closed when a blocked lookup begins.
+	started chan struct{}
 	// errs are returned (one per call) before the map is consulted.
 	errs []error
 }
@@ -29,6 +33,13 @@ func (f *fakeChatSettings) GetChatSettings(_ context.Context, chat types.JID) (t
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls++
+	if f.block != nil {
+		close(f.started)
+		blk := f.block
+		f.mu.Unlock()
+		<-blk
+		f.mu.Lock()
+	}
 	if len(f.errs) > 0 {
 		err := f.errs[0]
 		f.errs = f.errs[1:]
@@ -124,7 +135,7 @@ func TestHandleMuteEvent(t *testing.T) {
 	}{
 		{"muted with end", muteEvt(a, proto.Bool(true), proto.Int64(endMs)), time.UnixMilli(endMs)},
 		{"muted -1", muteEvt(a, proto.Bool(true), proto.Int64(-1)), store.MutedForever},
-		{"muted no end", muteEvt(a, proto.Bool(true), nil), store.MutedForever},
+		{"muted no end", muteEvt(a, proto.Bool(true), nil), time.UnixMilli(0)},
 		{"unmuted", muteEvt(a, proto.Bool(false), nil), time.Time{}},
 	}
 	for i, tt := range tests {
@@ -160,5 +171,37 @@ func TestIsMutedBadID(t *testing.T) {
 	sm, _ := newTestSessionManager(t)
 	if sm.IsMuted("not a jid") {
 		t.Error("unparsable ID must not be muted")
+	}
+}
+
+func TestHandleMuteEmptyJIDIgnored(t *testing.T) {
+	sm, mock := newTestSessionManager(t)
+	eh := &eventHandler{sm: sm}
+	eh.handleMute(muteEvt(types.EmptyJID, proto.Bool(true), proto.Int64(-1)))
+	if len(mock.ChatLists) != 0 {
+		t.Error("empty JID must be ignored")
+	}
+}
+
+func TestMutedUntilLazyFillDoesNotOverwriteNewerWrite(t *testing.T) {
+	sm, _ := newTestSessionManager(t)
+	a := pnJID("alice")
+	fs := &fakeChatSettings{
+		until:   map[string]time.Time{a.String(): time.Time{}},
+		block:   make(chan struct{}),
+		started: make(chan struct{}),
+	}
+	sm.chatSettingsOverride = fs
+	res := make(chan time.Time)
+	go func() { res <- sm.mutedUntil(a) }()
+	<-fs.started
+	newer := time.Now().Add(time.Hour)
+	sm.setMutedUntil(a, newer)
+	close(fs.block)
+	if got := <-res; !got.Equal(newer) {
+		t.Errorf("mutedUntil = %v, want newer %v", got, newer)
+	}
+	if got := sm.mutedUntil(a); !got.Equal(newer) {
+		t.Errorf("cache = %v, want %v", got, newer)
 	}
 }
