@@ -2,7 +2,7 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are git tags (`vX.Y.Z`).
 
-_Last updated: 2026-11-23T09:21:57+00:00 (notifications, unreleased)_
+_Last updated: 2026-11-23T09:35:09+00:00 (notifications review fixes, unreleased)_
 
 ## [Unreleased]
 
@@ -20,6 +20,15 @@ _Last updated: 2026-11-23T09:21:57+00:00 (notifications, unreleased)_
 - The chat list reads mutes from memory only and fills them in the background, so drawing never waits on the database.
 - `FZF_DEFAULT_OPTS` options that could send a file you did not confirm (`--select-1`), add output lines (`--print-query`, `--expect`) or restart the program (tmux, zellij, winpty) are overridden inside the picker.
 - `/exit` quits, the same as `/quit`.
+
+### Fixed
+- Status updates (`status@broadcast`), broadcast lists, channels (newsletters) and reactions (added or removed) no longer notify; only one-to-one chats and groups do.
+- Mutes that arrive in a full app-state sync (after linking or reconnecting) are picked up: the sync completion clears the cached mute state and the chat list redraws.
+- A failing pop-up (for example no notification daemon) is reported once per session, with a hint, instead of on every message.
+- `/mute` with a bad duration names the bad input before the usage line. `/mute` and `/unmute` check the connection again when they send.
+- A failing sound player reports the end of its error output instead of only `exit status 1`. On Windows the sound path reaches PowerShell through an environment variable, so quote characters in it are safe.
+- Pop-up text is escaped on the BSDs as well as Linux (both use a D-Bus notification daemon).
+- The terminal is taken over only after the interface is built, so an early failure leaves it usable.
 
 ## [1.6.6] - 2026-10-31
 

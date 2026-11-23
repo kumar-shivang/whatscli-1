@@ -2,7 +2,7 @@
 
 > Canonical instructions for every AI agent working in this repository (Claude Code, Gemini, Cursor, Copilot, Codex). `CLAUDE.md`, `GEMINI.md` and `.cursorrules` point here. Change rules here only.
 >
-> _Last updated: 2026-11-23T09:21:57+00:00 (notifications and mutes)_
+> _Last updated: 2026-11-23T09:35:09+00:00 (notifications review fixes: interface count, mute cache, Table A3)_
 
 ## 1. Project
 
@@ -75,7 +75,7 @@ qrcode/       ANSI QR rendering (qrcode.go)
 picker/       file picker: gitignore-aware walk (gocodewalker) fed to embedded fzf
 ```
 
-**Data flow:** UI sends `messages.Command` on `CommandChannel`; `SessionManager.runManager()` dispatches through `commandRegistry`. The backend calls back through the `UiMessageHandler` interface (18 methods, implemented by `UiHandler` in `ui_handler.go` and by `MockUiHandler` in `messages/mock_ui_handler.go`).
+**Data flow:** UI sends `messages.Command` on `CommandChannel`; `SessionManager.runManager()` dispatches through `commandRegistry`. The backend calls back through the `UiMessageHandler` interface (22 methods, implemented by `UiHandler` in `ui_handler.go` and by `MockUiHandler` in `messages/mock_ui_handler.go`).
 
 **Files in `messages/`:**
 
@@ -109,6 +109,11 @@ picker/       file picker: gitignore-aware walk (gocodewalker) fed to embedded f
 | `cmd_media.go` | `/upload /sendimage /sendvideo /sendaudio /sendfile` |
 | `cmd_message.go` | `/download /open /show /url /revoke` (take a message ID) |
 | `cmd_search.go` | `/search /search-contact` |
+| `cmd_mute.go` | `/mute [duration] /unmute`: app-state mute patch, sent in a goroutine that fetches the client again |
+| `notify.go` | Terminal focus state, `notifier.decide` (rules and per-chat throttle), pop-up title and body |
+| `notify_wiring.go` | `notifyIncoming`: only 1:1 and group chats, mute lookup, pop-up (first error reported once) and sound hooks |
+| `mute.go` | Mute state: cache over whatsmeow's chat settings store, `events.Mute`, reset on `events.AppStateSyncComplete`, `WarmMuteCache` |
+| `sound.go` | Built-in sound (embedded WAV), custom sound path, system player choice and single-flight playback |
 | `mock_ui_handler.go` | Mock UI for tests |
 
 ## 6. Concurrency rules (non-negotiable)
@@ -143,7 +148,7 @@ Message commands (`download`, `open`, `show`, `url`, `revoke`) take a message ID
 
 ## 8. Storage
 
-- SQLite only, all through `MessageDatabase` in `storage.go`. WAL mode, 5 s busy timeout. No in-memory caches; reads query SQLite.
+- SQLite only, all through `MessageDatabase` in `storage.go`. WAL mode, 5 s busy timeout. Message and chat reads query SQLite; there is no message cache. The one in-memory cache is mute state (`mute.go`), filled from whatsmeow's chat settings store, kept current by `events.Mute` and cleared on `events.AppStateSyncComplete`.
 - App DB: `<XDG_CONFIG>/whatscli/session_meta.db` (tables `conversations`, `messages`). WhatsApp session: `session.db` (whatsmeow's own store). Never hardcode paths; use `config.GetSessionFilePath()`.
 - Schema changes use `addColumnIfMissing` (idempotent `ALTER TABLE ADD COLUMN`). Never drop or rewrite columns that older binaries read.
 - `AddMessage` inserts with `INSERT OR IGNORE` (first write wins for text, sender and time), then fills empty media columns of a known row in the same chat unless it is revoked, and returns a `StoreResult` so callers redraw only on change. `messages.local_path` records where media was saved.
@@ -171,7 +176,7 @@ Message commands (`download`, `open`, `show`, `url`, `revoke`) take a message ID
 1. Reading `sm.client` without the lock.
 2. DB writes while holding `sm.mu`.
 3. Using `storage.Init()` in tests (it opens the real config path).
-4. `UiMessageHandler` has 18 methods; any new mock must implement all of them.
+4. `UiMessageHandler` has 22 methods; any new mock must implement all of them.
 5. A chat can arrive as `@lid` or `@s.whatsapp.net`. Store under the canonical JID (`canonicalChatJID`), compare people with `sameUser`, never with string equality.
 6. whatsmeow `BuildHistorySyncRequest` dereferences its anchor; never pass nil.
 7. `go test` without `-race` hides data races; CI uses `-race`.
