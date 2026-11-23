@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"gopkg.in/ini.v1"
 )
 
 func TestDefaults_CmdPrefix(t *testing.T) {
@@ -70,5 +72,25 @@ func TestGetSessionFilePath(t *testing.T) {
 	path := GetSessionFilePath()
 	if path == "" {
 		t.Error("GetSessionFilePath returned empty string")
+	}
+}
+
+func TestConfigNotificationDefaults(t *testing.T) {
+	g := Config.General
+	if !g.EnableNotifications || !g.PlaySound || g.NotificationSound != "" || g.NotificationTimeout != 60 {
+		t.Errorf("unexpected defaults: %+v", g)
+	}
+
+	f, err := ini.Load([]byte("[general]\nplay_sound = false\nnotification_sound = /tmp/x.wav\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.NameMapper = ini.TitleUnderscore
+	var got General
+	if err := f.Section("general").MapTo(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got.PlaySound || got.NotificationSound != "/tmp/x.wav" {
+		t.Errorf("ini not mapped: %+v", got)
 	}
 }

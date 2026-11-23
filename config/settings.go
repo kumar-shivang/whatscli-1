@@ -27,6 +27,8 @@ type General struct {
 	ShowCommand         string
 	EnableNotifications bool
 	UseTerminalBell     bool
+	PlaySound           bool   // play a sound on notification
+	NotificationSound   string // path to a custom sound file; empty = built-in
 	NotificationTimeout int64
 	BacklogMsgQuantity  int
 	UploadSearchPath    string // folder the file picker searches
@@ -92,8 +94,10 @@ var Config = IniFile{
 		PreviewPath:         GetHomeDir() + "Downloads",
 		CmdPrefix:           "/",
 		ShowCommand:         "jp2a --color",
-		EnableNotifications: false,
+		EnableNotifications: true,
 		UseTerminalBell:     false,
+		PlaySound:           true,
+		NotificationSound:   "",
 		NotificationTimeout: 60,
 		BacklogMsgQuantity:  10,
 		UploadSearchPath:    GetHomeDir(),
