@@ -6,7 +6,7 @@
 >
 > Timestamps are ISO 8601 to the second, with the offset. "Raised" dates for rows 1 to 25 are 2026-10-31, the date of the independent review (REVIEW-3, an agent report that is not stored in the repository) and of the residual-risk notes written with the fixes; git has no earlier commit for them.
 >
-> _Last updated: 2026-11-23T09:57:37+00:00 (emoji picker shipped on branch, unreleased; row 40 opened)._
+> _Last updated: 2026-11-23T10:02:35+00:00 (emoji picker shipped on branch, unreleased; row 40 opened)._
 
 ## 0. North star: every open item, one row each
 
@@ -229,7 +229,7 @@ Rows 14, 15. No test talks to WhatsApp; this area exists to keep that gap visibl
 | Local check of the revoke time window | The server decides and its error is shown; the exact window is [Unverified] |
 | Opening Office files, HTML, SVG or archives from `open` | They can run macros or scripts (D15); users open them by hand |
 | Publishing to the AUR from CI | Would need an SSH key secret (D5) |
-| Emoji skin tones, ZWJ sequences (families, professions), keycaps, custom emoji, sticker and GIF panels in the emoji picker | Terminals draw joined and modified emoji with inconsistent widths; the owner asked for the default look only (row 39). Search uses CLDR names only, no extra keywords |
+| Emoji skin tones, ZWJ sequences (families, professions), keycaps, flags (terminals do not draw them), custom emoji, sticker and GIF panels in the emoji picker | Terminals draw joined and modified emoji with inconsistent widths; the owner asked for the default look only (row 39). Search uses CLDR names only, no extra keywords |
 | Reaction display, voice recording, sticker sending, reply threading, status viewing | Listed as ideas in the old README "inferred roadmap"; no demand or owner decision recorded. Re-raise with a row number if wanted |
 
 ## 6. Where the detail lives

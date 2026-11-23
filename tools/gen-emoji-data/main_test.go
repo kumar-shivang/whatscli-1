@@ -48,12 +48,12 @@ func TestGenerate(t *testing.T) {
 	if !strings.HasPrefix(src, "// SPDX-License-Identifier: AGPL-3.0-only\n") || !strings.Contains(src, "DO NOT EDIT") {
 		t.Fatalf("header missing:\n%s", src)
 	}
-	for _, want := range []string{`emojiDataVersion = "99.0"`, "😀\tgrinning face", "☺️\tsmiling face", "👋\twaving hand", "🇮🇳\tflag: India", "# Flags\n"} {
+	for _, want := range []string{`emojiDataVersion = "99.0"`, "😀\tgrinning face", "☺️\tsmiling face", "👋\twaving hand", "# Symbols\n"} {
 		if !strings.Contains(src, want) {
 			t.Errorf("output lacks %q", want)
 		}
 	}
-	for _, bad := range []string{"🏽", "‍", "⃣", "England", "skin tone", "broken", "bad"} {
+	for _, bad := range []string{"🏽", "‍", "⃣", "England", "India", "# Flags", ": medium skin tone", "broken", "bad"} {
 		if strings.Contains(src, bad) {
 			t.Errorf("output contains %q", bad)
 		}
@@ -61,7 +61,7 @@ func TestGenerate(t *testing.T) {
 	if strings.Count(src, "smiling face") != 1 {
 		t.Error("smiling face listed twice")
 	}
-	if _, err := generate(strings.NewReader("# group: Flags\n")); err == nil {
+	if _, err := generate(strings.NewReader("# group: Symbols\n")); err == nil {
 		t.Error("input without a version should fail")
 	}
 }

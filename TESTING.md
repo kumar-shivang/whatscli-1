@@ -2,7 +2,7 @@
 
 How WhatsCLI is tested, and the live-account checklist that gates every release. The checklist is ROADMAP row 15 (Recurring).
 
-_Last updated: 2026-11-23T09:57:37+00:00 (emoji picker tests and checklist step 36; MockUiHandler implements 23 methods)_
+_Last updated: 2026-11-23T10:02:35+00:00 (emoji picker tests and checklist step 36; MockUiHandler implements 23 methods)_
 
 ## 1. Commands
 
@@ -59,7 +59,7 @@ Last verified 2026-10-31 at `v1.6.2` (`ad7df87`): build, vet and `go test -race 
 | `messages/display_names_test.go` | 3 | Sender label order (saved name, phone number, `~PushName`, LID), contact saved under the LID, no stores, `getMessages` labels without changing stored rows |
 | `messages/edit_incoming_test.go` | 3 | Edits by the sender and by our other device, refused edits (other sender, other chat, not yours, unknown, revoked), edit across LID and phone-number forms |
 | `ui_helpers_test.go` | 1 | `chatForID` |
-| `ui_emoji_picker_test.go` | 14 | Emoji data (groups, no skin tone, ZWJ, keycap or tag entries, no duplicates, every width 2), search ranking, Recent list (add, dedupe, cap 24, file round trip, corrupt file), grid navigation, tabs, tab labels that fit, drawing at 40, 80 and 120 columns, three picks in a row at the cursor, toggle key and Esc, mouse, Recent updated live, edit and reply modes kept, `/emoji` brings the draft back. Uses a temporary Recent file, never the real state folder |
+| `ui_emoji_picker_test.go` | 14 | Emoji data (groups, no skin tone, ZWJ, keycap, tag or flag entries, no duplicates, every width 2), search ranking, Recent list (add, dedupe, cap 24, file round trip, corrupt file), grid navigation, tabs, tab labels that fit, drawing at 40, 80 and 120 columns, three picks in a row at the cursor, toggle key and Esc, mouse, Recent updated live, edit and reply modes kept, `/emoji` brings the draft back. Uses a temporary Recent file, never the real state folder |
 | `messages/cmd_emoji_test.go` | 1 | `/emoji` is registered, opens the picker, refuses arguments |
 | `tools/gen-emoji-data/main_test.go` | 1 | Generator keeps fully-qualified emoji and drops skin tones, ZWJ, keycap and tag sequences, components, bad lines |
 

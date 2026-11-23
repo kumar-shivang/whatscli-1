@@ -14,9 +14,10 @@ package main
 //
 // The emoji come from emoji_data.go (generated from Unicode's
 // emoji-test.txt by tools/gen-emoji-data): fully-qualified emoji only, no
-// skin tones, no ZWJ or keycap sequences. Every grid cell is 3 columns wide
-// (a 2-column emoji plus a space): 2-column emoji are the norm in terminals,
-// and any emoji whose measured width is not 2 is left out so the grid stays
+// skin tones, no ZWJ or keycap sequences, and no flags (terminals do not
+// draw them). Every grid cell is 3 columns wide (a 2-column emoji plus a
+// space): 2-column emoji are the norm in terminals, and any emoji whose
+// measured width is not 2 is left out so the grid stays
 // aligned. The data is parsed on first open (sync.Once), not at start.
 //
 // Recently picked emoji (at most 24, newest first) are kept in a small text
@@ -68,7 +69,6 @@ var emojiCategories = []emojiCategory{
 	{"Activities", "Activities", "Act"},
 	{"Objects", "Objects", "Obj"},
 	{"Symbols", "Symbols", "Sym"},
-	{"Flags", "Flags", "Flg"},
 }
 
 // pickerEmoji is one emoji of the picker.

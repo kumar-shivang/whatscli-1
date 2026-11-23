@@ -2,12 +2,12 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are git tags (`vX.Y.Z`).
 
-_Last updated: 2026-11-23T09:57:37+00:00 (emoji picker, unreleased)_
+_Last updated: 2026-11-23T10:02:35+00:00 (emoji picker, unreleased)_
 
 ## [Unreleased]
 
 ### Added
-- Emoji picker like WhatsApp's: `Ctrl+t` (new key `emoji_picker`) or `/emoji` opens tabs (Recent, then the nine Unicode groups), a search line over every category by name, and a grid that fits the terminal width. `Enter` or a click adds the emoji at the input cursor and the picker stays open for more; `Esc` clears the search, then closes; `Ctrl+t` again or a click outside closes it. The Recent tab keeps the last 24 picked emoji in `<XDG_STATE_HOME>/whatscli/recent_emoji`. No skin tones, no ZWJ or keycap sequences. Data from Unicode emoji-test.txt (Emoji 18.0), generated into `emoji_data.go` by `tools/gen-emoji-data`.
+- Emoji picker like WhatsApp's: `Ctrl+t` (new key `emoji_picker`) or `/emoji` opens tabs (Recent, then eight Unicode groups; no Flags tab, since terminals do not draw flags), a search line over every category by name, and a grid that fits the terminal width. `Enter` or a click adds the emoji at the input cursor and the picker stays open for more; `Esc` clears the search, then closes; `Ctrl+t` again or a click outside closes it. The Recent tab keeps the last 24 picked emoji in `<XDG_STATE_HOME>/whatscli/recent_emoji`. No skin tones, no ZWJ or keycap sequences, no flags. Data from Unicode emoji-test.txt (Emoji 18.0), generated into `emoji_data.go` by `tools/gen-emoji-data`.
 - Notifications are good enough to leave on: on by default for new configs, aware of terminal focus (unfocused: pop-up and sound, even for the open chat; focused: sound only; a terminal that does not report focus keeps the old behaviour of a silent open chat), throttled per chat by `notification_timeout`, with group pop-ups titled `Sender · Group` and a readable body for media messages. Under tmux add `set -g focus-events on`.
 - A short built-in notification sound (made by `tools/gen-notify-sound`), played with `pw-play`, `paplay`, `aplay`, `afplay` or PowerShell, with the terminal bell as fallback. New settings `play_sound` (default true) and `notification_sound` (path to your own file). `use_terminal_bell` now rings the bell instead of the sound; `play_sound = false` silences both.
 - Mutes follow WhatsApp: a chat muted on your phone, or by `/mute`, does not notify. `/mute [30m|8h|1d|1w]` (no duration: always; at most 10 years) and `/unmute` change the mute here and on your phone. Muted chats show the speaker-off symbol in the chat list.

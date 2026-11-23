@@ -18,7 +18,7 @@
   Read and send WhatsApp messages from a terminal, with no browser. Connects as a linked device through <a href="https://github.com/tulir/whatsmeow">whatsmeow</a> and draws its interface with <a href="https://github.com/rivo/tview">tview</a>.
 </p>
 
-_Last updated: 2026-11-23T09:57:37+00:00 (emoji picker: key, command, usage, data source)_
+_Last updated: 2026-11-23T10:02:35+00:00 (emoji picker: Flags tab removed)_
 
 ---
 
@@ -367,16 +367,16 @@ New messages raise a desktop pop-up and a sound. They are on by default for new 
 
 Press `Ctrl+t` (key `emoji_picker`) or enter `/emoji` to open the emoji picker over the main screen. It works like the one in WhatsApp:
 
-- A row of tabs: Recent, Smileys and Emotion, People and Body, Animals and Nature, Food and Drink, Travel and Places, Activities, Objects, Symbols, Flags. Narrow terminals show shorter labels. `Tab` and `Shift+Tab` switch tab, or click one.
+- A row of tabs: Recent, Smileys and Emotion, People and Body, Animals and Nature, Food and Drink, Travel and Places, Activities, Objects, Symbols. Narrow terminals show shorter labels. `Tab` and `Shift+Tab` switch tab, or click one.
 - A search line: type to search every category by the emoji's English name (the Unicode CLDR name, for example `thumbs up` or `pizza`); names that start with what you typed come first. `Backspace` edits the search.
 - A grid that uses the width of the terminal (40 columns at least): arrow keys move (`Left` and `Right` go on to the previous or next row), `PgUp` and `PgDn` move a page, the mouse wheel scrolls. The name of the selected emoji is shown under the grid.
 - `Enter` or a click adds the selected emoji to the input line at the cursor. The picker stays open, so you can add several in a row; each goes after the last one. Nothing is sent: close the picker and press `Enter` as usual. Drafts, editing (`edit>`) and replies are kept.
 - `Esc` clears the search; with no search it closes the picker. `Ctrl+t` again, or a click outside the window, closes it too. The focus goes back to the input line.
 - The Recent tab holds the last 24 emoji you picked, newest first. It is kept in `recent_emoji` in your state folder (`~/.local/state/whatscli/` on Linux); if that file cannot be read or written the picker works without it.
 
-What is left out, on purpose: skin tone variants (the default yellow look only), emoji made of several joined emoji (ZWJ sequences such as family or profession emoji) and keycaps, because terminals draw them with different widths and the grid would break. Each emoji takes 3 columns (the emoji, 2 columns wide, and a space); the few emoji that the bundled width tables do not measure as 2 columns wide (mostly the newest ones, which most terminal fonts cannot draw yet) are left out as well. Some terminals draw emoji that carry the emoji style marker (U+FE0F), such as the red heart, one column wide; the grid may then look uneven, but adding them still works. [Unverified] which terminals do this.
+What is left out, on purpose: the Flags group (country and other flags), because terminals do not draw flags; skin tone variants (the default yellow look only), emoji made of several joined emoji (ZWJ sequences such as family or profession emoji) and keycaps, because terminals draw them with different widths and the grid would break. Each emoji takes 3 columns (the emoji, 2 columns wide, and a space); the few emoji that the bundled width tables do not measure as 2 columns wide (mostly the newest ones, which most terminal fonts cannot draw yet) are left out as well. Some terminals draw emoji that carry the emoji style marker (U+FE0F), such as the red heart, one column wide; the grid may then look uneven, but adding them still works. [Unverified] which terminals do this.
 
-The emoji list comes from Unicode's [emoji-test.txt](https://unicode.org/Public/emoji/latest/emoji-test.txt), Emoji version 18.0 (fully-qualified entries only). `emoji_data.go` is generated from it by `tools/gen-emoji-data`; to update it, download the file and run `go run ./tools/gen-emoji-data -o emoji_data.go /path/to/emoji-test.txt` from the repository root.
+The emoji list comes from Unicode's [emoji-test.txt](https://unicode.org/Public/emoji/latest/emoji-test.txt), Emoji version 18.0 (fully-qualified entries only, without the Component and Flags groups). `emoji_data.go` is generated from it by `tools/gen-emoji-data`; to update it, download the file and run `go run ./tools/gen-emoji-data -o emoji_data.go /path/to/emoji-test.txt` from the repository root.
 
 The `:name` suggestions on the input line (type `:` and two letters, for example `:smi`) work as before.
 

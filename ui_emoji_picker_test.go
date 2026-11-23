@@ -148,6 +148,9 @@ func TestEmojiPickerData(t *testing.T) {
 			if r >= 0xE0020 && r <= 0xE007F {
 				t.Errorf("tag sequence %q (%s)", p.e, p.name)
 			}
+			if r >= 0x1F1E6 && r <= 0x1F1FF {
+				t.Errorf("flag %q (%s): the Flags group is left out", p.e, p.name)
+			}
 		}
 		if w := tview.TaggedStringWidth(p.e); w != 2 {
 			t.Errorf("%q (%s) is %d columns wide, want 2", p.e, p.name, w)
@@ -160,7 +163,7 @@ func TestEmojiPickerData(t *testing.T) {
 			t.Errorf("bad name %q for %q", p.name, p.e)
 		}
 	}
-	for _, want := range []string{"😀", "👍", "❤️", "🐶", "🍕", "🚗", "⚽", "💡", "✅", "🇮🇳"} {
+	for _, want := range []string{"😀", "👍", "❤️", "🐶", "🍕", "🚗", "⚽", "💡", "✅"} {
 		if !seen[emojiKey(want)] {
 			t.Errorf("%q missing", want)
 		}
@@ -202,6 +205,13 @@ func TestSearchEmojiRanking(t *testing.T) {
 	if len(searchEmoji("zzzznotanemoji")) != 0 {
 		t.Error("nonsense matched")
 	}
+	if got := searchEmoji("flag"); len(got) != 0 {
+		for _, i := range got {
+			if pickerAll[i].cat == 0 || strings.HasPrefix(pickerAll[i].lower, "flag:") {
+				t.Errorf("search finds a country flag: %q", pickerAll[i].name)
+			}
+		}
+	}
 }
 
 func TestAddRecent(t *testing.T) {
@@ -239,7 +249,7 @@ func TestRecentEmojiFile(t *testing.T) {
 	if got := readRecentEmoji(""); got != nil {
 		t.Fatalf("no path: %q", got)
 	}
-	want := []string{"🍕", "❤️", "🇮🇳"}
+	want := []string{"🍕", "❤️", "✅"}
 	if err := writeRecentEmoji(path, want); err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +258,7 @@ func TestRecentEmojiFile(t *testing.T) {
 	}
 	// Junk, unknown lines, skin tones, duplicates and a variant without
 	// U+FE0F are skipped or merged; the file is not trusted.
-	junk := "\x00\xff\xfe garbage\nnot an emoji\n👍🏽\n🍕\n🍕\n❤\n\n[red]x\n"
+	junk := "\x00\xff\xfe garbage\nnot an emoji\n👍🏽\n🇮🇳\n🍕\n🍕\n❤\n\n[red]x\n"
 	if err := os.WriteFile(path, []byte(junk), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -357,8 +367,8 @@ func TestEmojiPickerCategories(t *testing.T) {
 		t.Fatalf("Shift+Tab to Recent: cat %d, %d items", p.cat, len(p.items))
 	}
 	press(tcell.KeyBacktab, 0)
-	if p.cat != len(emojiCategories)-1 {
-		t.Fatalf("Shift+Tab wraps to Flags, got %d", p.cat)
+	if len(emojiCategories) != 9 || p.cat != 8 {
+		t.Fatalf("Shift+Tab wraps to Symbols (8 of 9 tabs, no Flags), got %d of %d", p.cat, len(emojiCategories))
 	}
 	press(tcell.KeyTab, 0)
 	if p.cat != 0 {
@@ -379,7 +389,7 @@ func TestEmojiPickerCategories(t *testing.T) {
 }
 
 func TestTabLabelsFit(t *testing.T) {
-	for _, w := range []int{38, 50, 60, 78} {
+	for _, w := range []int{24, 30, 38, 50, 60, 78} {
 		for cur := range emojiCategories {
 			labels, first, last := tabLabels(w, cur)
 			if cur < first || cur > last {
@@ -397,7 +407,7 @@ func TestTabLabelsFit(t *testing.T) {
 			}
 		}
 	}
-	if labels, first, last := tabLabels(78, 0); first != 0 || last != 9 || labels[1] != "Smileys" {
+	if labels, first, last := tabLabels(78, 0); first != 0 || last != len(labels)-1 || labels[1] != "Smileys" {
 		t.Errorf("78 columns should show every short label: %q %d..%d", labels, first, last)
 	}
 }
