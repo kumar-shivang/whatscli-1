@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/PalWorks/whatscli/actions/workflows/ci.yml"><img src="https://github.com/PalWorks/whatscli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/PalWorks/whatscli/releases/latest"><img src="https://img.shields.io/github/v/release/PalWorks/whatscli?color=blue" alt="Latest Release"></a>
-  <a href="https://goreportcard.com/report/github.com/PalWorks/whatscli"><img src="https://goreportcard.com/badge/github.com/PalWorks/whatscli" alt="Go Report Card"></a>
+  <a href="https://github.com/kumar-shivang/whatscli-extended/actions/workflows/ci.yml"><img src="https://github.com/kumar-shivang/whatscli-extended/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/kumar-shivang/whatscli-extended/releases/latest"><img src="https://img.shields.io/github/v/release/kumar-shivang/whatscli-extended?color=blue" alt="Latest Release"></a>
+  <a href="https://goreportcard.com/report/github.com/kumar-shivang/whatscli-extended"><img src="https://goreportcard.com/badge/github.com/kumar-shivang/whatscli-extended" alt="Go Report Card"></a>
 </p>
 
 <p align="center">
@@ -135,47 +135,37 @@ Installs the latest release of this fork for your OS and CPU (amd64 or arm64), c
 
 ### Prebuilt binaries
 
-Each release on [GitHub Releases](https://github.com/PalWorks/whatscli/releases) has:
+Each release on [GitHub Releases](https://github.com/kumar-shivang/whatscli-extended/releases) has:
 
-**Table I1: Release assets (names from `.github/workflows/release.yml`, checked against the v1.6.2 release)**
+**Table I1: Release assets (names from `.github/workflows/release.yml`; `<tag>` is for example `v1.7.1`)**
 
-| Platform | Asset (v1.6.2) | Contains |
+| Platform | Asset | Contains |
 |---|---|---|
-| Linux x86_64 | `whatscli-v1.6.2-linux-amd64.tar.gz` | `whatscli` |
-| Linux arm64 | `whatscli-v1.6.2-linux-arm64.tar.gz` | `whatscli` |
-| Windows x86_64 | `whatscli-v1.6.2-windows-amd64.zip` | `whatscli.exe` |
-| Checksums | `whatscli-v1.6.2-checksums.txt` | SHA256 of the three archives |
+| Linux x86_64 | `whatscli-<tag>-linux-amd64.tar.gz` | `whatscli` |
+| Linux arm64 | `whatscli-<tag>-linux-arm64.tar.gz` | `whatscli` |
+| macOS Intel | `whatscli-<tag>-darwin-amd64.tar.gz` | `whatscli` |
+| macOS Apple Silicon | `whatscli-<tag>-darwin-arm64.tar.gz` | `whatscli` |
+| Windows x86_64 | `whatscli-<tag>-windows-amd64.zip` | `whatscli.exe` |
+| Checksums | `whatscli-<tag>-checksums.txt` | SHA256 of every archive |
 
-Other versions follow the same pattern with their tag. The latest release is v1.6.2; tags with a `-` (such as `v1.6.2-rc1`) are pre-releases and never marked Latest.
+Tags with a `-` (such as `v1.7.0-ks.1`) are pre-releases and never marked Latest. To install by hand, for example Linux x86_64:
 
 ```bash
-# with the GitHub CLI
-gh release download v1.6.2 --repo PalWorks/whatscli \
-  --pattern 'whatscli-v1.6.2-linux-amd64.tar.gz' --pattern 'whatscli-v1.6.2-checksums.txt'
-# or with curl
-curl -LO https://github.com/PalWorks/whatscli/releases/download/v1.6.2/whatscli-v1.6.2-linux-amd64.tar.gz
-curl -LO https://github.com/PalWorks/whatscli/releases/download/v1.6.2/whatscli-v1.6.2-checksums.txt
-
-sha256sum -c --ignore-missing whatscli-v1.6.2-checksums.txt
-tar -xzf whatscli-v1.6.2-linux-amd64.tar.gz      # extracts ./whatscli
+tag=v1.7.1   # pick a release
+gh release download "$tag" --repo kumar-shivang/whatscli-extended \
+  --pattern "whatscli-$tag-linux-amd64.tar.gz" --pattern "whatscli-$tag-checksums.txt"
+sha256sum -c --ignore-missing "whatscli-$tag-checksums.txt"
+tar -xzf "whatscli-$tag-linux-amd64.tar.gz"      # extracts ./whatscli
 ./whatscli
 ```
 
-macOS, Raspberry Pi (armv5) and Homebrew are not released for now (ROADMAP row 8); macOS users build from source. The Windows build has not been run through the live-account checklist (TESTING.md Table T3).
-
-### With go install
-
-```bash
-go install github.com/PalWorks/whatscli@latest
-```
-
-Needs a C compiler (SQLite is built through CGO). `@latest` resolves to the newest release tag; the Go module proxy can take a short while to pick up a new tag (on 2026-10-31 it still returned `v1.6.1` minutes after `v1.6.2` was published). From v1.6.1 a binary built this way shows the module version it was installed at (for example `v1.6.1`) in the top bar and `/help`; release binaries and `make install` show the tag they were built from.
+Raspberry Pi (armv5) and Homebrew are not released. The macOS and Windows builds have not been run through the live-account checklist (TESTING.md Table T3).
 
 ### From source
 
 ```bash
-git clone https://github.com/PalWorks/whatscli.git
-cd whatscli
+git clone https://github.com/kumar-shivang/whatscli-extended.git
+cd whatscli-extended
 make build        # ./whatscli, version from git describe
 make install      # into $(go env GOPATH)/bin, version from git describe
 make run          # go run .
