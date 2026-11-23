@@ -51,6 +51,7 @@ func helpText(km *config.Keymap, prefix string) string {
 		{km.FocusMessages, "Select a message (then the keys below)"},
 		{km.PickFile, "Pick files to send (fzf; Tab marks several)"},
 		{"Up", "In an empty input: edit your last message (Esc cancels)"},
+		{"Shift+Enter / Alt+Enter", "New line in a message (also Ctrl+J; shown as ↵)"},
 		{"Esc", "Back to typing"},
 		{km.CommandBacklog, "Ask the phone for older messages"},
 		{km.CommandRead, "Mark the chat read"},

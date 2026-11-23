@@ -79,6 +79,10 @@ func setupCompose() {
 	ctx.TextInput.SetChangedFunc(onInputChanged)
 	next := ctx.TextInput.GetInputCapture()
 	ctx.TextInput.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		if isNewlineKey(ev) && !isCommandText(ctx.TextInput.GetText()) {
+			// Typed like a character, at the cursor.
+			return tcell.NewEventKey(tcell.KeyRune, newlineRune, tcell.ModNone)
+		}
 		if ev.Key() == tcell.KeyUp && ctx.TextInput.GetText() == "" && editing == nil && !commandListOpen() && startEdit() {
 			return nil
 		}
@@ -87,6 +91,33 @@ func setupCompose() {
 		}
 		return ev
 	})
+}
+
+// newlineRune stands for a line break in the one-line input field; it is
+// sent as "\n" (messageText).
+const newlineRune = '↵'
+
+// isNewlineKey reports whether ev adds a line break to a message:
+// Shift+Enter (also Ctrl+Enter or Alt+Enter), or Ctrl+J. Terminals without
+// an extended keyboard protocol send Shift+Enter and Ctrl+Enter as plain
+// Enter; Alt+Enter and Ctrl+J work nearly everywhere. Ctrl+J arrives as a
+// line feed (KeyLF) from most terminals and as Ctrl+J (KeyCtrlJ) from those
+// that report modifiers.
+func isNewlineKey(ev *tcell.EventKey) bool {
+	if ev.Key() == tcell.KeyEnter && ev.Modifiers()&(tcell.ModShift|tcell.ModCtrl|tcell.ModAlt) != 0 {
+		return true
+	}
+	return ev.Key() == tcell.KeyLF || ev.Key() == tcell.KeyCtrlJ
+}
+
+// messageText turns the input text into the text to send.
+func messageText(input string) string {
+	return strings.ReplaceAll(input, string(newlineRune), "\n")
+}
+
+// inputFromText shows message text in the one-line input field.
+func inputFromText(text string) string {
+	return strings.ReplaceAll(text, "\n", string(newlineRune))
 }
 
 func onInputChanged(text string) {
@@ -169,7 +200,7 @@ func startEdit() bool {
 	cancelReply()
 	editing = m
 	ctx.TextInput.SetLabel("[" + config.Config.Colors.ForwardedText + "]" + editLabel + "[-]")
-	setInputText(strings.TrimSuffix(m.Text, " "+messages.EditedMark))
+	setInputText(inputFromText(strings.TrimSuffix(m.Text, " "+messages.EditedMark)))
 	return true
 }
 

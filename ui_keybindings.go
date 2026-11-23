@@ -505,6 +505,7 @@ func EnterCommand(key tcell.Key) {
 			ctx.SessionManager.CommandChannel <- messages.Command{Name: cm, Params: params}
 			setInputText("")
 		} else {
+			cmd = messageText(cmd) // ↵ typed with Shift+Enter or Alt+Enter is a line break
 			if ctx.CurrentReceiver.Id == "" {
 				PrintText("no receiver")
 				setInputText("")
