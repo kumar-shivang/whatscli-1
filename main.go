@@ -42,30 +42,6 @@ func main() {
 	}
 
 	ctx.App = tview.NewApplication()
-	// The wrapped screen reports terminal focus changes to the session
-	// manager (set above, so it is non-nil before any event arrives).
-	// SetScreen calls Init on it now and drops the error, so check it here.
-	// It must stay before EnableMouse below: tview only enables the mouse on
-	// a screen it has when EnableMouse is called.
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		fmt.Printf("Failed to create screen: %v\n", err)
-		ctx.SessionManager.Shutdown()
-		return
-	}
-	fs := &focusScreen{Screen: screen, onFocus: func(focused bool) {
-		if ctx.SessionManager != nil {
-			ctx.SessionManager.SetTerminalFocus(focused)
-		}
-	}}
-	ctx.Screen = fs
-	ctx.App.SetScreen(fs)
-	if fs.initErr != nil {
-		fmt.Printf("Failed to initialize screen: %v\n", fs.initErr)
-		ctx.SessionManager.Shutdown()
-		return
-	}
-
 	sideBarWidth := config.Config.Ui.ChatSidebarWidth
 	gridLayout := tview.NewGrid()
 	gridLayout.SetRows(1, 0, 1)
@@ -156,6 +132,33 @@ func main() {
 
 	pages = tview.NewPages().AddPage("main", gridLayout, true, true)
 	ctx.App.SetRoot(pages, true)
+
+	// The wrapped screen reports terminal focus changes to the session
+	// manager (set above, so it is non-nil before any event arrives).
+	// SetScreen takes over the terminal, and tview restores it only inside
+	// Run, so the screen is created after the widgets are built.
+	// SetScreen calls Init on it now and drops the error, so check it here.
+	// It must stay before EnableMouse below: tview only enables the mouse on
+	// a screen it has when EnableMouse is called.
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		fmt.Printf("Failed to create screen: %v\n", err)
+		ctx.SessionManager.Shutdown()
+		return
+	}
+	fs := &focusScreen{Screen: screen, onFocus: func(focused bool) {
+		if ctx.SessionManager != nil {
+			ctx.SessionManager.SetTerminalFocus(focused)
+		}
+	}}
+	ctx.Screen = fs
+	ctx.App.SetScreen(fs)
+	if fs.initErr != nil {
+		fmt.Printf("Failed to initialize screen: %v\n", fs.initErr)
+		ctx.SessionManager.Shutdown()
+		return
+	}
+
 	ctx.App.EnableMouse(true)
 	ctx.App.SetAfterDrawFunc(func(screen tcell.Screen) {
 		drawScrollBars(screen)
