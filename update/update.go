@@ -6,6 +6,7 @@ package update
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -66,9 +67,22 @@ func Latest() (string, error) {
 	return rel.Tag, nil
 }
 
-// AssetName is the release archive for tag on the given platform.
+// AssetName is the release archive for tag on the given platform: a .zip on
+// Windows, a .tar.gz elsewhere.
 func AssetName(tag, goos, goarch string) string {
-	return fmt.Sprintf("whatscli-%s-%s-%s.tar.gz", tag, goos, goarch)
+	ext := "tar.gz"
+	if goos == "windows" {
+		ext = "zip"
+	}
+	return fmt.Sprintf("whatscli-%s-%s-%s.%s", tag, goos, goarch, ext)
+}
+
+// binaryName is the executable's name inside the release archive.
+func binaryName(goos string) string {
+	if goos == "windows" {
+		return "whatscli.exe"
+	}
+	return "whatscli"
 }
 
 func get(url string) (io.ReadCloser, error) {
@@ -86,9 +100,6 @@ func get(url string) (io.ReadCloser, error) {
 // Install downloads tag for this platform, checks its SHA-256 against the
 // release checksums file and replaces the executable at exePath.
 func Install(tag, exePath string) error {
-	if runtime.GOOS == "windows" {
-		return errors.New("self-update is not supported on Windows; download the release zip manually")
-	}
 	asset := AssetName(tag, runtime.GOOS, runtime.GOARCH)
 	base := fmt.Sprintf("%s/%s/releases/download/%s", DownloadBase, Repo, tag)
 
@@ -120,7 +131,7 @@ func Install(tag, exePath string) error {
 	tmpName := tmp.Name()
 	defer os.Remove(tmpName) // no-op after a successful rename
 
-	if err := extractVerified(io.LimitReader(body, maxDownload), want, tmp); err != nil {
+	if err := extractVerified(io.LimitReader(body, maxDownload), want, runtime.GOOS, tmp); err != nil {
 		tmp.Close()
 		return err
 	}
@@ -130,7 +141,33 @@ func Install(tag, exePath string) error {
 	if err := os.Chmod(tmpName, 0o755); err != nil {
 		return err
 	}
-	return os.Rename(tmpName, exePath)
+	return replaceBinary(tmpName, exePath, runtime.GOOS == "windows")
+}
+
+// replaceBinary puts newPath in place of exePath. A running Windows exe can
+// be renamed but not overwritten, so there the old file is moved aside to
+// exePath+".old" (removed by CleanupOld on the next start).
+func replaceBinary(newPath, exePath string, moveAside bool) error {
+	if !moveAside {
+		return os.Rename(newPath, exePath)
+	}
+	old := exePath + ".old"
+	os.Remove(old)
+	if err := os.Rename(exePath, old); err != nil {
+		return err
+	}
+	if err := os.Rename(newPath, exePath); err != nil {
+		os.Rename(old, exePath) // roll back
+		return err
+	}
+	return nil
+}
+
+// CleanupOld removes the previous binary left behind by a Windows update.
+func CleanupOld() {
+	if exe, err := Executable(); err == nil {
+		os.Remove(exe + ".old")
+	}
 }
 
 // checksumFor finds the hash of name in sha256sum output.
@@ -144,10 +181,10 @@ func checksumFor(sums, name string) string {
 	return ""
 }
 
-// extractVerified reads a .tar.gz archive from r, checks the archive's
-// SHA-256 equals want and writes the "whatscli" entry to out. Nothing is
-// trusted until the hash matches: the archive is read to the end first.
-func extractVerified(r io.Reader, want string, out io.Writer) error {
+// extractVerified reads an archive (.zip on Windows, .tar.gz elsewhere) from
+// r, checks its SHA-256 equals want and writes the whatscli executable to
+// out. Nothing is unpacked until the hash matches.
+func extractVerified(r io.Reader, want, goos string, out io.Writer) error {
 	h := sha256.New()
 	data, err := io.ReadAll(io.TeeReader(r, h))
 	if err != nil {
@@ -155,6 +192,25 @@ func extractVerified(r io.Reader, want string, out io.Writer) error {
 	}
 	if got := hex.EncodeToString(h.Sum(nil)); got != want {
 		return fmt.Errorf("checksum mismatch: got %s, want %s", got, want)
+	}
+	name := binaryName(goos)
+	if goos == "windows" {
+		zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+		if err != nil {
+			return err
+		}
+		for _, f := range zr.File {
+			if !f.FileInfo().IsDir() && filepath.Base(f.Name) == name {
+				rc, err := f.Open()
+				if err != nil {
+					return err
+				}
+				defer rc.Close()
+				_, err = io.Copy(out, io.LimitReader(rc, maxDownload))
+				return err
+			}
+		}
+		return errors.New("archive has no " + name)
 	}
 	gz, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -164,12 +220,12 @@ func extractVerified(r io.Reader, want string, out io.Writer) error {
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
-			return errors.New("archive has no whatscli binary")
+			return errors.New("archive has no " + name)
 		}
 		if err != nil {
 			return err
 		}
-		if hdr.Typeflag == tar.TypeReg && filepath.Base(hdr.Name) == "whatscli" {
+		if hdr.Typeflag == tar.TypeReg && filepath.Base(hdr.Name) == name {
 			_, err := io.Copy(out, io.LimitReader(tr, maxDownload))
 			return err
 		}

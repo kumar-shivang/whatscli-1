@@ -4,6 +4,7 @@ package update
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -20,6 +21,13 @@ import (
 func makeArchive(t *testing.T, content string) []byte {
 	t.Helper()
 	var b bytes.Buffer
+	if runtime.GOOS == "windows" {
+		zw := zip.NewWriter(&b)
+		w, _ := zw.Create("whatscli.exe")
+		w.Write([]byte(content))
+		zw.Close()
+		return b.Bytes()
+	}
 	gz := gzip.NewWriter(&b)
 	tw := tar.NewWriter(gz)
 	tw.WriteHeader(&tar.Header{Name: "whatscli", Mode: 0o755, Size: int64(len(content)), Typeflag: tar.TypeReg})
@@ -48,9 +56,6 @@ func server(t *testing.T, tag string, archive []byte, sum string) {
 }
 
 func TestLatestAndInstall(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("self-update unsupported on windows")
-	}
 	arc := makeArchive(t, "new-binary")
 	s := sha256.Sum256(arc)
 	server(t, "v9.9.9", arc, hex.EncodeToString(s[:]))
@@ -70,9 +75,6 @@ func TestLatestAndInstall(t *testing.T) {
 }
 
 func TestInstallRejectsBadChecksum(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip()
-	}
 	server(t, "v9.9.9", makeArchive(t, "evil"), "00"+string(bytes.Repeat([]byte("0"), 62)))
 	exe := filepath.Join(t.TempDir(), "whatscli")
 	os.WriteFile(exe, []byte("old"), 0o755)
@@ -85,5 +87,35 @@ func TestInstallRejectsBadChecksum(t *testing.T) {
 	left, _ := filepath.Glob(filepath.Join(filepath.Dir(exe), ".whatscli-update-*"))
 	if len(left) != 0 {
 		t.Fatalf("temp file left behind: %v", left)
+	}
+}
+
+func TestWindowsZipExtractAndMoveAside(t *testing.T) {
+	var b bytes.Buffer
+	zw := zip.NewWriter(&b)
+	w, _ := zw.Create("whatscli.exe")
+	w.Write([]byte("win-new"))
+	zw.Close()
+	s := sha256.Sum256(b.Bytes())
+	var out bytes.Buffer
+	if err := extractVerified(bytes.NewReader(b.Bytes()), hex.EncodeToString(s[:]), "windows", &out); err != nil || out.String() != "win-new" {
+		t.Fatalf("extract: %q, %v", out.String(), err)
+	}
+	if AssetName("v1.0.0", "windows", "amd64") != "whatscli-v1.0.0-windows-amd64.zip" {
+		t.Fatal("bad windows asset name")
+	}
+
+	dir := t.TempDir()
+	exe, nw := filepath.Join(dir, "whatscli.exe"), filepath.Join(dir, "new")
+	os.WriteFile(exe, []byte("old"), 0o755)
+	os.WriteFile(nw, []byte("new"), 0o755)
+	if err := replaceBinary(nw, exe, true); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(exe); string(got) != "new" {
+		t.Fatalf("exe = %q", got)
+	}
+	if got, _ := os.ReadFile(exe + ".old"); string(got) != "old" {
+		t.Fatalf("old = %q", got)
 	}
 }
