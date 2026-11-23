@@ -65,33 +65,74 @@ func writeBuiltinSound(cacheDir string) (string, error) {
 	return path, os.WriteFile(path, builtinSound, 0o644)
 }
 
+// soundPathEnv carries the sound file to PowerShell, so no quoting of the
+// path inside the script is needed.
+const soundPathEnv = "WHATSCLI_SOUND"
+
 // pickPlayer chooses a system audio player for goos, using lookPath to find
-// binaries. ok is false when none is available.
-func pickPlayer(goos string, lookPath func(string) (string, error), file string) (cmd string, args []string, ok bool) {
+// binaries. env holds extra environment variables for the player (nil for
+// none). ok is false when none is available.
+func pickPlayer(goos string, lookPath func(string) (string, error), file string) (cmd string, args, env []string, ok bool) {
 	has := func(n string) bool { _, err := lookPath(n); return err == nil }
 	switch goos {
 	case "darwin":
 		if has("afplay") {
-			return "afplay", []string{file}, true
+			return "afplay", []string{file}, nil, true
 		}
 	case "windows":
 		if has("powershell") {
-			q := strings.ReplaceAll(file, "'", "''")
+			// The path goes in an environment variable: any quote
+			// character in it (including curly quotes, which PowerShell
+			// also treats as string delimiters) cannot end the string.
 			return "powershell", []string{"-NoProfile", "-Command",
-				"(New-Object Media.SoundPlayer '" + q + "').PlaySync()"}, true
+					"(New-Object Media.SoundPlayer $env:" + soundPathEnv + ").PlaySync()"},
+				[]string{soundPathEnv + "=" + file}, true
 		}
 	default:
 		if has("pw-play") {
-			return "pw-play", []string{file}, true
+			return "pw-play", []string{file}, nil, true
 		}
 		if has("paplay") {
-			return "paplay", []string{file}, true
+			return "paplay", []string{file}, nil, true
 		}
 		if has("aplay") {
-			return "aplay", []string{"-q", file}, true
+			return "aplay", []string{"-q", file}, nil, true
 		}
 	}
-	return "", nil, false
+	return "", nil, nil, false
+}
+
+// stderrTailBytes is how much of a failed player's stderr is kept in the
+// reported error.
+const stderrTailBytes = 200
+
+// runPlayer runs a player command with env added to the environment and
+// waits for it. On failure the error carries the last stderrTailBytes of the
+// player's stderr, trimmed.
+func runPlayer(ctx context.Context, env []string, name string, args ...string) error {
+	cmd := exec.CommandContext(ctx, name, args...)
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	return playerError(cmd.Run(), stderr.Bytes())
+}
+
+// playerError adds the trimmed tail of stderr to a player error; it returns
+// nil for a nil err and err unchanged when stderr is blank.
+func playerError(err error, stderr []byte) error {
+	if err == nil {
+		return nil
+	}
+	if len(stderr) > stderrTailBytes {
+		stderr = stderr[len(stderr)-stderrTailBytes:]
+	}
+	tail := strings.TrimSpace(strings.ToValidUTF8(string(stderr), ""))
+	if tail == "" {
+		return err
+	}
+	return fmt.Errorf("%w: %s", err, tail)
 }
 
 // soundPlayer plays notification sounds one at a time via a system player.
@@ -99,12 +140,13 @@ func pickPlayer(goos string, lookPath func(string) (string, error), file string)
 // the same file on every call.
 type soundPlayer struct {
 	report func(error)
-	run    func(ctx context.Context, name string, args ...string) error
-	pick   func(file string) (string, []string, bool)
+	run    func(ctx context.Context, env []string, name string, args ...string) error
+	pick   func(file string) (cmd string, args, env []string, ok bool)
 
 	pickOnce sync.Once
 	cmd      string   // cached player command; set by resolve
 	args     []string // cached player arguments; set by resolve
+	env      []string // cached extra environment; set by resolve
 	found    bool     // whether a player was found; set by resolve
 
 	mu       sync.Mutex
@@ -118,10 +160,8 @@ type soundPlayer struct {
 func newSoundPlayer(report func(error)) *soundPlayer {
 	return &soundPlayer{
 		report: report,
-		run: func(ctx context.Context, name string, args ...string) error {
-			return exec.CommandContext(ctx, name, args...).Run()
-		},
-		pick: func(file string) (string, []string, bool) {
+		run:    runPlayer,
+		pick: func(file string) (string, []string, []string, bool) {
 			return pickPlayer(runtime.GOOS, exec.LookPath, file)
 		},
 	}
@@ -129,7 +169,7 @@ func newSoundPlayer(report func(error)) *soundPlayer {
 
 // resolve looks the player up for file the first time it is called.
 func (p *soundPlayer) resolve(file string) {
-	p.pickOnce.Do(func() { p.cmd, p.args, p.found = p.pick(file) })
+	p.pickOnce.Do(func() { p.cmd, p.args, p.env, p.found = p.pick(file) })
 }
 
 // HasPlayer reports whether a system player is available for file. The
@@ -175,7 +215,7 @@ func (p *soundPlayer) play(file string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), soundPlayTimeout)
 	defer cancel()
-	return p.run(ctx, p.cmd, p.args...)
+	return p.run(ctx, p.env, p.cmd, p.args...)
 }
 
 // wait blocks until in-flight playback finishes (used by tests).

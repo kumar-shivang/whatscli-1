@@ -15,6 +15,9 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
+// errNotConnected is reported when /mute or /unmute has no connected client.
+var errNotConnected = errors.New("not connected to WhatsApp: try again once connected")
+
 // muteSendTimeout bounds the app-state patch sent by /mute and /unmute.
 const muteSendTimeout = 15 * time.Second
 
@@ -69,6 +72,7 @@ func cmdMute(sm *SessionManager, client *whatsmeow.Client, cmdName string, param
 	}
 	d, err := parseMuteDuration(arg)
 	if err != nil {
+		sm.uiHandler.PrintError(err)
 		sm.printCommandUsage(cmdName, "[duration]")
 		return
 	}
@@ -100,7 +104,7 @@ func (sm *SessionManager) setMute(client *whatsmeow.Client, mute bool, d time.Du
 		return
 	}
 	if client == nil || (sm.appStateSender == nil && !client.IsConnected()) {
-		sm.uiHandler.PrintError(errors.New("not connected to WhatsApp: try again once connected"))
+		sm.uiHandler.PrintError(errNotConnected)
 		return
 	}
 	patch := appstate.BuildMute(jid, mute, d)
@@ -110,9 +114,10 @@ func (sm *SessionManager) setMute(client *whatsmeow.Client, mute bool, d time.Du
 		}
 		ctx, cancel := context.WithTimeout(sm.rootContext(), muteSendTimeout)
 		defer cancel()
-		send := sm.appStateSender
-		if send == nil {
-			send = client.SendAppState
+		send, err := sm.muteSender()
+		if err != nil {
+			sm.uiHandler.PrintError(err)
+			return
 		}
 		if err := send(ctx, patch); err != nil {
 			sm.uiHandler.PrintError(fmt.Errorf("could not update mute: %v", err))
@@ -135,4 +140,19 @@ func (sm *SessionManager) setMute(client *whatsmeow.Client, mute bool, d time.Du
 		sm.uiHandler.UpdateChatList(safeList)
 		sm.uiHandler.PrintText(msg)
 	}()
+}
+
+// muteSender returns the function that sends a mute patch. It is called in
+// the /mute goroutine and fetches the client again, because the one handed to
+// the command can be stale by then (AGENTS.md rule 6.1). The appStateSender
+// test seam replaces it and skips the connected check.
+func (sm *SessionManager) muteSender() (func(context.Context, appstate.PatchInfo) error, error) {
+	if sm.appStateSender != nil {
+		return sm.appStateSender, nil
+	}
+	c := sm.getClient()
+	if c == nil || !c.IsConnected() {
+		return nil, errNotConnected
+	}
+	return c.SendAppState, nil
 }

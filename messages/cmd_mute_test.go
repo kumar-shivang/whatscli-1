@@ -125,3 +125,33 @@ func TestCmdMuteBadDuration(t *testing.T) {
 		t.Fatalf("sent=%d texts=%v", len(*sent), ui.Texts)
 	}
 }
+
+// The /mute goroutine fetches the client again; with none (or a disconnected
+// one) it reports "not connected" and changes nothing.
+func TestMuteSenderRefetchesClient(t *testing.T) {
+	sm, _ := newTestSessionManager(t)
+	if _, err := sm.muteSender(); !errors.Is(err, errNotConnected) {
+		t.Errorf("nil client: err = %v", err)
+	}
+	sm.client = &whatsmeow.Client{} // never connected
+	if _, err := sm.muteSender(); !errors.Is(err, errNotConnected) {
+		t.Errorf("disconnected client: err = %v", err)
+	}
+	called := false
+	sm.appStateSender = func(context.Context, appstate.PatchInfo) error { called = true; return nil }
+	send, err := sm.muteSender()
+	if err != nil || send(context.Background(), appstate.PatchInfo{}) != nil || !called {
+		t.Errorf("seam: err = %v called = %v", err, called)
+	}
+}
+
+func TestCmdMuteBadDurationNamesInput(t *testing.T) {
+	sm, ui, sent, _ := muteHarness(t, nil)
+	cmdMute(sm, &whatsmeow.Client{}, "mute", []string{"soon"})
+	if len(*sent) != 0 {
+		t.Fatalf("sent = %d", len(*sent))
+	}
+	if len(ui.Errors) == 0 || !strings.Contains(ui.Errors[0].Error(), `"soon"`) {
+		t.Errorf("errors = %v, want one naming the input", ui.Errors)
+	}
+}

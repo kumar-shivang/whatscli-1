@@ -153,11 +153,34 @@ func TestNotifyBody(t *testing.T) {
 
 func TestNotifyBodyEscapesMarkupOnLinux(t *testing.T) {
 	const in = "<b>hi</b> & co"
-	if got := notifyBody(in, "", "linux"); got != "&lt;b&gt;hi&lt;/b&gt; &amp; co" {
-		t.Errorf("linux: got %q", got)
+	const escaped = "&lt;b&gt;hi&lt;/b&gt; &amp; co"
+	for _, goos := range []string{"linux", "freebsd"} {
+		if got := notifyBody(in, "", goos); got != escaped {
+			t.Errorf("%s: got %q", goos, got)
+		}
 	}
-	if got := notifyBody(in, "", "darwin"); got != in {
-		t.Errorf("darwin: got %q, want unchanged", got)
+	for _, goos := range []string{"darwin", "windows"} {
+		if got := notifyBody(in, "", goos); got != in {
+			t.Errorf("%s: got %q, want unchanged", goos, got)
+		}
+	}
+}
+
+// Unknown focus with the chat open notifies nothing and must not start the
+// throttle window: the next message in that chat, no longer open, notifies.
+func TestDecideUnknownFocusOpenChatDoesNotStartWindow(t *testing.T) {
+	now := time.Unix(1_000_000, 0)
+	n := newNotifier(60 * time.Second)
+	in := baseInput(now)
+	in.Focus = FocusUnknown
+	in.IsOpenChat = true
+	if p, s := n.decide("a", in); p || s {
+		t.Fatalf("open chat, unknown focus: got (%v, %v), want (false, false)", p, s)
+	}
+	in2 := baseInput(now.Add(time.Second))
+	in2.Focus = FocusUnknown
+	if p, s := n.decide("a", in2); !p || !s {
+		t.Errorf("next message: got (%v, %v), want (true, true)", p, s)
 	}
 }
 

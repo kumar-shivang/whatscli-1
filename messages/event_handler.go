@@ -61,6 +61,8 @@ func (eh *eventHandler) Handle(evt interface{}) {
 		eh.sm.handlePresence(v)
 	case *events.Mute:
 		eh.handleMute(v)
+	case *events.AppStateSyncComplete:
+		eh.handleAppStateSyncComplete(v)
 	case *events.HistorySync:
 		go eh.sm.processHistorySync(v.Data)
 	}
@@ -298,9 +300,13 @@ func (eh *eventHandler) processIncomingMessage(evt *events.Message, text, previe
 	}
 
 	// Pop-up and/or sound; notifyIncoming decides (notify_wiring.go).
-	senderName := eh.sm.senderLabel(evt.Info.Sender.String(), msg.ContactShort)
-	eh.sm.notifyIncoming(chat, evt.Info.IsGroup, evt.Info.IsFromMe, time.Unix(int64(timestamp), 0),
-		senderName, chatName, text, preview)
+	// Reactions (including the "[REACTION]" of a removed one) never notify.
+	// The sender label is looked up only when a pop-up is shown.
+	if evt.Message.GetReactionMessage() == nil {
+		senderName := func() string { return eh.sm.senderLabel(evt.Info.Sender.String(), msg.ContactShort) }
+		eh.sm.notifyIncoming(chat, evt.Info.IsGroup, evt.Info.IsFromMe, time.Unix(int64(timestamp), 0),
+			senderName, chatName, text, preview)
+	}
 
 	// Update chat list ordering
 	eh.sm.uiHandler.UpdateChatList(safeList)

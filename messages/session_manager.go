@@ -66,13 +66,14 @@ type SessionManager struct {
 
 	// Notifications (notify_wiring.go). Set by initNotifications (from
 	// Init); a manager without them never notifies.
-	notifier  *notifier
-	sound     *soundPlayer
-	popupFunc func(title, body string) error // shows a pop-up; tests replace it
-	soundFunc func()                         // plays the sound (or the bell); tests replace it
-	notifyWG  sync.WaitGroup                 // pop-up and sound goroutines; tests wait on it
-	soundOnce sync.Once                      // resolves soundPath on first sound
-	soundPath string                         // sound file to play; "" means use the bell
+	notifier     *notifier
+	sound        *soundPlayer
+	popupFunc    func(title, body string) error // shows a pop-up; tests replace it
+	soundFunc    func()                         // plays the sound (or the bell); tests replace it
+	notifyWG     sync.WaitGroup                 // pop-up and sound goroutines; tests wait on it
+	soundOnce    sync.Once                      // resolves soundPath on first sound
+	popupErrOnce sync.Once                      // reports only the first pop-up error per session
+	soundPath    string                         // sound file to play; "" means use the bell
 }
 
 // initialize the SessionManager

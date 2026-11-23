@@ -117,12 +117,13 @@ func notifyTitle(sender, group string) string {
 	}
 }
 
-// notifyBody returns the pop-up body for a message. It uses text, or preview
-// (for example "Photo") when text is blank, and "New message" when both are
-// empty. Line breaks become spaces, the text is cut to maxBodyRunes runes with
-// an ellipsis, and on linux (where the notification daemon renders markup)
-// &, < and > are escaped. Quotes are left alone because daemons would show
-// &#34; literally.
+// notifyBody returns the pop-up body for a message. It uses text (for media
+// the tag from extractMessageContent, such as "[IMAGE]" or "[IMAGE] caption"),
+// or preview when text is blank, and "New message" when both are empty. Line
+// breaks become spaces, the text is cut to maxBodyRunes runes with an
+// ellipsis, and on every system except darwin and windows (Linux and the BSDs
+// use a D-Bus notification daemon, which renders markup) &, < and > are
+// escaped. Quotes are left alone because daemons would show &#34; literally.
 func notifyBody(text, preview, goos string) string {
 	body := text
 	if strings.TrimSpace(body) == "" {
@@ -135,7 +136,7 @@ func notifyBody(text, preview, goos string) string {
 	if r := []rune(body); len(r) > maxBodyRunes {
 		body = string(r[:maxBodyRunes]) + "\u2026"
 	}
-	if goos == "linux" {
+	if goos != "darwin" && goos != "windows" {
 		body = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(body)
 	}
 	return body

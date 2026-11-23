@@ -24,14 +24,32 @@ func (sm *SessionManager) initNotifications() {
 	sm.soundFunc = sm.playNotifySound
 }
 
+// popupErrorHint follows the first pop-up error, which is the only one shown.
+const popupErrorHint = "set enable_notifications = false to stop these pop-ups"
+
+// notifiableServer reports whether messages in a chat on this JID server may
+// notify: 1:1 chats (phone number or LID) and groups. Status updates
+// (status@broadcast), broadcast lists and newsletters never notify.
+func notifiableServer(server string) bool {
+	switch server {
+	case types.DefaultUserServer, types.HiddenUserServer, types.GroupServer:
+		return true
+	}
+	return false
+}
+
 // notifyIncoming shows a pop-up and/or plays a sound for a newly stored
-// message, following the rules in notifier.decide. It runs on the
-// message-handling path: it may read the mute store, so it must not be called
-// from the UI goroutine or with sm.mu held. The pop-up and sound run in their
-// own goroutines.
-func (sm *SessionManager) notifyIncoming(chat types.JID, isGroup, fromMe bool, msgTime time.Time, senderName, chatName, text, preview string) {
+// message, following the rules in notifier.decide. senderName is called only
+// when a pop-up will be shown, so its contact lookups are skipped for
+// messages that do not notify. It runs on the message-handling path: it may
+// read the mute store, so it must not be called from the UI goroutine or with
+// sm.mu held. The pop-up and sound run in their own goroutines.
+func (sm *SessionManager) notifyIncoming(chat types.JID, isGroup, fromMe bool, msgTime time.Time, senderName func() string, chatName, text, preview string) {
 	if sm.notifier == nil {
 		return // not initialised (managers built without Init)
+	}
+	if !notifiableServer(chat.Server) {
+		return
 	}
 	g := config.Config.General
 	now := time.Now()
@@ -63,13 +81,21 @@ func (sm *SessionManager) notifyIncoming(chat types.JID, isGroup, fromMe bool, m
 		if isGroup {
 			group = chatName
 		}
-		title := notifyTitle(senderName, group)
+		sender := ""
+		if senderName != nil {
+			sender = senderName()
+		}
+		title := notifyTitle(sender, group)
 		body := notifyBody(text, preview, runtime.GOOS)
 		sm.notifyWG.Add(1)
 		go func() {
 			defer sm.notifyWG.Done()
 			if err := sm.popupFunc(title, body); err != nil {
-				sm.uiHandler.PrintError(fmt.Errorf("notification: %w", err))
+				// Without a notification daemon every pop-up fails;
+				// report the first failure only.
+				sm.popupErrOnce.Do(func() {
+					sm.uiHandler.PrintError(fmt.Errorf("notification: %w (%s)", err, popupErrorHint))
+				})
 			}
 		}()
 	}

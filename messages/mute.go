@@ -5,7 +5,9 @@ package messages
 // mute.go: per-chat mute state. whatsmeow's ChatSettings store is the source
 // of truth (it records every mute, including those from a full app-state
 // sync). Lookups are cached in memory, keyed by canonical chat JID, and kept
-// current by events.Mute. The cache has its own mutex, never sm.mu.
+// current by events.Mute. A full app-state sync writes mutes to the store
+// without events.Mute, so events.AppStateSyncComplete clears the cache. The
+// cache has its own mutex, never sm.mu.
 
 import (
 	"context"
@@ -26,8 +28,25 @@ type chatSettingsStore interface {
 // muteCache holds mute-until times by canonical chat JID. The zero value is
 // ready to use. A zero time means "known, not muted".
 type muteCache struct {
-	mu sync.Mutex
-	m  map[string]time.Time
+	mu  sync.Mutex
+	m   map[string]time.Time
+	gen uint64 // bumped by reset; a store fill read under an older gen is dropped
+}
+
+// generation returns the current reset generation. A caller reads it before
+// a store lookup and passes it to setIfAbsent.
+func (c *muteCache) generation() uint64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.gen
+}
+
+// reset drops every entry, so the next lookup reads the store again.
+func (c *muteCache) reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m = nil
+	c.gen++
 }
 
 func (c *muteCache) get(key string) (time.Time, bool) {
@@ -38,12 +57,17 @@ func (c *muteCache) get(key string) (time.Time, bool) {
 }
 
 // setIfAbsent stores t only when key has no entry and returns the value now
-// cached, so a lazy store fill never overwrites a newer event write.
-func (c *muteCache) setIfAbsent(key string, t time.Time) time.Time {
+// cached, so a lazy store fill never overwrites a newer event write. gen is
+// the generation read before the store lookup: if the cache was reset since,
+// t may predate the reset and is returned without being cached.
+func (c *muteCache) setIfAbsent(key string, t time.Time, gen uint64) time.Time {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if cur, ok := c.m[key]; ok {
 		return cur
+	}
+	if gen != c.gen {
+		return t
 	}
 	if c.m == nil {
 		c.m = make(map[string]time.Time)
@@ -90,6 +114,7 @@ func (sm *SessionManager) mutedUntil(chat types.JID) time.Time {
 	if t, ok := sm.muteCache.get(key); ok {
 		return t
 	}
+	gen := sm.muteCache.generation()
 	st := sm.chatSettings()
 	if st == nil {
 		return time.Time{}
@@ -121,7 +146,7 @@ func (sm *SessionManager) mutedUntil(chat types.JID) time.Time {
 			best = cs.MutedUntil
 		}
 	}
-	return sm.muteCache.setIfAbsent(key, best)
+	return sm.muteCache.setIfAbsent(key, best, gen)
 }
 
 // setMutedUntil records a chat's mute end (zero to unmute) under its
@@ -173,10 +198,18 @@ func (sm *SessionManager) WarmMuteCache(chatIDs []string, done func()) {
 	go func() {
 		defer sm.muteWarming.Store(false)
 		filled := false
-		for _, jid := range missing {
-			sm.mutedUntil(jid)
-			if _, ok := sm.muteCache.get(sm.canonicalChatJID(jid).String()); ok {
-				filled = true
+		// A reset during the pass (AppStateSyncComplete) drops what this
+		// pass read, so it runs again for the new generation.
+		for {
+			gen := sm.muteCache.generation()
+			for _, jid := range missing {
+				sm.mutedUntil(jid)
+				if _, ok := sm.muteCache.get(sm.canonicalChatJID(jid).String()); ok {
+					filled = true
+				}
+			}
+			if sm.muteCache.generation() == gen {
+				break
 			}
 		}
 		if filled && done != nil {
@@ -202,6 +235,19 @@ func (eh *eventHandler) handleMute(evt *events.Mute) {
 		}
 	}
 	eh.sm.setMutedUntil(evt.JID, until)
+
+	eh.sm.mu.RLock()
+	safeList := eh.sm.snapshotPQ()
+	eh.sm.mu.RUnlock()
+	eh.sm.uiHandler.UpdateChatList(safeList)
+}
+
+// handleAppStateSyncComplete clears the mute cache after a full app-state
+// sync (whatsmeow stores the synced mutes but sends no events.Mute for them)
+// and redraws the chat list; the UI's warm-up then refills the cache from the
+// store.
+func (eh *eventHandler) handleAppStateSyncComplete(_ *events.AppStateSyncComplete) {
+	eh.sm.muteCache.reset()
 
 	eh.sm.mu.RLock()
 	safeList := eh.sm.snapshotPQ()

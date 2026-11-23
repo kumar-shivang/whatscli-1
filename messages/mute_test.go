@@ -233,3 +233,67 @@ func TestIsMutedCachedNeverReadsStore(t *testing.T) {
 		t.Error("unparsable ID or second warm-up misbehaved")
 	}
 }
+
+// A full app-state sync stores mutes without events.Mute; the completion
+// event must drop the cached "not muted" so the store is read again.
+func TestAppStateSyncCompleteRefreshesMutes(t *testing.T) {
+	sm, mock := newTestSessionManager(t)
+	a := pnJID("alice")
+	fs := &fakeChatSettings{until: map[string]time.Time{}}
+	sm.chatSettingsOverride = fs
+	if sm.IsMuted(a.String()) {
+		t.Fatal("not muted before the sync")
+	}
+	// The sync lands in the store.
+	fs.mu.Lock()
+	fs.until[a.String()] = store.MutedForever
+	fs.mu.Unlock()
+	if sm.IsMuted(a.String()) {
+		t.Fatal("cache should still say not muted before the event")
+	}
+	eh := &eventHandler{sm: sm}
+	eh.Handle(&events.AppStateSyncComplete{Name: "regular_high", Version: 3})
+	if len(mock.ChatLists) != 1 {
+		t.Errorf("UpdateChatList calls = %d, want 1", len(mock.ChatLists))
+	}
+	if sm.IsMutedCached(a.String()) {
+		t.Error("cache should be empty after the event")
+	}
+	if !sm.mutedUntil(a).Equal(store.MutedForever) || !sm.IsMuted(a.String()) {
+		t.Errorf("after event: mutedUntil = %v, want forever", sm.mutedUntil(a))
+	}
+}
+
+// staleSettings answers "not muted", then waits on release before returning,
+// standing in for a lookup that read the store just before a full sync.
+type staleSettings struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (s *staleSettings) GetChatSettings(context.Context, types.JID) (types.LocalChatSettings, error) {
+	close(s.started)
+	<-s.release
+	return types.LocalChatSettings{}, nil
+}
+
+// A store read that started before the reset must not be cached after it.
+func TestMuteFillBeforeResetNotCached(t *testing.T) {
+	sm, _ := newTestSessionManager(t)
+	a := pnJID("alice")
+	st := &staleSettings{started: make(chan struct{}), release: make(chan struct{})}
+	sm.chatSettingsOverride = st
+	res := make(chan time.Time, 1)
+	go func() { res <- sm.mutedUntil(a) }()
+	<-st.started
+	sm.muteCache.reset()
+	close(st.release)
+	select {
+	case <-res:
+	case <-time.After(5 * time.Second):
+		t.Fatal("lookup did not finish")
+	}
+	if _, ok := sm.muteCache.get(a.String()); ok {
+		t.Fatal("a fill read before the reset was cached")
+	}
+}

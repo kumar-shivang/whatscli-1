@@ -7,8 +7,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -118,32 +120,71 @@ func TestPickPlayer(t *testing.T) {
 		have []string
 		cmd  string
 		args []string
+		env  []string
 		ok   bool
 	}{
-		{"linux", []string{"pw-play", "paplay"}, "pw-play", []string{"f.wav"}, true},
-		{"linux", []string{"paplay"}, "paplay", []string{"f.wav"}, true},
-		{"linux", []string{"aplay"}, "aplay", []string{"-q", "f.wav"}, true},
-		{"linux", nil, "", nil, false},
-		{"freebsd", []string{"paplay"}, "paplay", []string{"f.wav"}, true},
-		{"darwin", []string{"afplay"}, "afplay", []string{"f.wav"}, true},
-		{"windows", []string{"powershell"}, "powershell", []string{"-NoProfile", "-Command", "(New-Object Media.SoundPlayer 'f.wav').PlaySync()"}, true},
+		{"linux", []string{"pw-play", "paplay"}, "pw-play", []string{"f.wav"}, nil, true},
+		{"linux", []string{"paplay"}, "paplay", []string{"f.wav"}, nil, true},
+		{"linux", []string{"aplay"}, "aplay", []string{"-q", "f.wav"}, nil, true},
+		{"linux", nil, "", nil, nil, false},
+		{"freebsd", []string{"paplay"}, "paplay", []string{"f.wav"}, nil, true},
+		{"darwin", []string{"afplay"}, "afplay", []string{"f.wav"}, nil, true},
+		{"windows", []string{"powershell"}, "powershell",
+			[]string{"-NoProfile", "-Command", "(New-Object Media.SoundPlayer $env:WHATSCLI_SOUND).PlaySync()"},
+			[]string{"WHATSCLI_SOUND=f.wav"}, true},
 	}
 	for _, tc := range tests {
-		cmd, args, ok := pickPlayer(tc.goos, look(tc.have...), "f.wav")
-		if cmd != tc.cmd || ok != tc.ok || !reflect.DeepEqual(args, tc.args) {
-			t.Errorf("%s %v: got %q %v %v", tc.goos, tc.have, cmd, args, ok)
+		cmd, args, env, ok := pickPlayer(tc.goos, look(tc.have...), "f.wav")
+		if cmd != tc.cmd || ok != tc.ok || !reflect.DeepEqual(args, tc.args) || !reflect.DeepEqual(env, tc.env) {
+			t.Errorf("%s %v: got %q %v %v %v", tc.goos, tc.have, cmd, args, env, ok)
 		}
 	}
-	_, args, _ := pickPlayer("windows", look("powershell"), "C:\\it's.wav")
-	if !strings.Contains(args[2], "'C:\\it''s.wav'") {
-		t.Errorf("quote not doubled: %v", args)
+	// Quotes of any kind in the path never reach the script text.
+	const odd = "C:\\it's \u2018odd\u2019.wav"
+	_, args, env, _ := pickPlayer("windows", look("powershell"), odd)
+	if strings.Contains(args[2], "odd") || !reflect.DeepEqual(env, []string{"WHATSCLI_SOUND=" + odd}) {
+		t.Errorf("path leaked into the script or env wrong: %v %v", args, env)
+	}
+}
+
+func TestPlayerErrorKeepsStderrTail(t *testing.T) {
+	base := errors.New("exit status 1")
+	if playerError(nil, []byte("noise")) != nil {
+		t.Error("nil error must stay nil")
+	}
+	if got := playerError(base, []byte("  \n")); got != base {
+		t.Errorf("blank stderr: got %v", got)
+	}
+	got := playerError(base, []byte("aplay: main: audio open error: Device busy\n"))
+	if !errors.Is(got, base) || got.Error() != "exit status 1: aplay: main: audio open error: Device busy" {
+		t.Errorf("got %q", got)
+	}
+	long := strings.Repeat("x", 500) + "END"
+	got = playerError(base, []byte(long))
+	if tail := strings.TrimPrefix(got.Error(), "exit status 1: "); len(tail) != stderrTailBytes || !strings.HasSuffix(tail, "END") {
+		t.Errorf("tail len = %d, %q", len(tail), tail)
+	}
+}
+
+// runPlayer passes env to the process and reports its stderr. It runs sh,
+// not an audio player.
+func TestRunPlayerEnvAndStderr(t *testing.T) {
+	if _, err := exec.LookPath("sh"); err != nil || runtime.GOOS == "windows" {
+		t.Skip("needs sh")
+	}
+	err := runPlayer(context.Background(), []string{"WHATSCLI_SOUND=probe"}, "sh", "-c", `echo "got $WHATSCLI_SOUND" >&2; exit 3`)
+	if err == nil || !strings.HasSuffix(err.Error(), "got probe") {
+		t.Fatalf("err = %v", err)
+	}
+	if err := runPlayer(context.Background(), nil, "sh", "-c", "exit 0"); err != nil {
+		t.Fatalf("success: %v", err)
 	}
 }
 
 func newTestPlayer(run func(name string, args ...string) error, report func(error)) *soundPlayer {
 	p := newSoundPlayer(report)
-	p.pick = func(string) (string, []string, bool) { return "fake", []string{"f"}, true }
-	p.run = func(_ context.Context, name string, args ...string) error { return run(name, args...) }
+	p.pick = func(string) (string, []string, []string, bool) { return "fake", []string{"f"}, nil, true }
+	p.run = func(_ context.Context, _ []string, name string, args ...string) error { return run(name, args...) }
 	return p
 }
 
@@ -192,7 +233,7 @@ func TestPlayerErrorReportedOnce(t *testing.T) {
 func TestPlayerLooksUpOnce(t *testing.T) {
 	var picks atomic.Int32
 	p := newTestPlayer(func(string, ...string) error { return nil }, func(error) {})
-	p.pick = func(string) (string, []string, bool) { picks.Add(1); return "fake", nil, true }
+	p.pick = func(string) (string, []string, []string, bool) { picks.Add(1); return "fake", nil, nil, true }
 	if !p.HasPlayer("f") {
 		t.Fatal("HasPlayer = false")
 	}
@@ -202,5 +243,19 @@ func TestPlayerLooksUpOnce(t *testing.T) {
 	}
 	if picks.Load() != 1 {
 		t.Fatalf("picks = %d, want 1", picks.Load())
+	}
+}
+
+func TestPlayerPassesEnvToRun(t *testing.T) {
+	var got []string
+	p := newSoundPlayer(func(error) {})
+	p.pick = func(string) (string, []string, []string, bool) {
+		return "fake", []string{"-x"}, []string{"WHATSCLI_SOUND=f"}, true
+	}
+	p.run = func(_ context.Context, env []string, _ string, _ ...string) error { got = env; return nil }
+	p.Play("f")
+	p.wait()
+	if !reflect.DeepEqual(got, []string{"WHATSCLI_SOUND=f"}) {
+		t.Fatalf("env = %v", got)
 	}
 }
