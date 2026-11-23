@@ -286,7 +286,7 @@ func (eh *eventHandler) processIncomingMessage(evt *events.Message, text, previe
 		eh.sm.uiHandler.PrintError(fmt.Errorf("upsert conversation: %v", err))
 	}
 
-	// UI: show in current chat or send notification
+	// UI: show in the open chat
 	eh.sm.mu.RLock()
 	isCurrent := chatJID == eh.sm.currentReceiver
 	eh.sm.mu.RUnlock()
@@ -295,17 +295,12 @@ func (eh *eventHandler) processIncomingMessage(evt *events.Message, text, previe
 		shown := []Message{msg}
 		eh.sm.labelSenders(shown)
 		eh.sm.uiHandler.NewMessage(shown[0])
-	} else if !evt.Info.IsFromMe {
-		if timestamp > uint64(time.Now().Unix()-30) {
-			senderName := eh.sm.senderLabel(evt.Info.Sender.String(), eh.getContactShort(evt.Info.Sender))
-			if senderName == "" {
-				senderName = "New Message"
-			}
-			if err := notify(senderName, text); err != nil {
-				eh.sm.uiHandler.PrintError(err)
-			}
-		}
 	}
+
+	// Pop-up and/or sound; notifyIncoming decides (notify_wiring.go).
+	senderName := eh.sm.senderLabel(evt.Info.Sender.String(), msg.ContactShort)
+	eh.sm.notifyIncoming(chat, evt.Info.IsGroup, evt.Info.IsFromMe, time.Unix(int64(timestamp), 0),
+		senderName, chatName, text, preview)
 
 	// Update chat list ordering
 	eh.sm.uiHandler.UpdateChatList(safeList)

@@ -188,3 +188,19 @@ func TestPlayerErrorReportedOnce(t *testing.T) {
 		t.Fatalf("reports = %d", reports)
 	}
 }
+
+func TestPlayerLooksUpOnce(t *testing.T) {
+	var picks atomic.Int32
+	p := newTestPlayer(func(string, ...string) error { return nil }, func(error) {})
+	p.pick = func(string) (string, []string, bool) { picks.Add(1); return "fake", nil, true }
+	if !p.HasPlayer("f") {
+		t.Fatal("HasPlayer = false")
+	}
+	for i := 0; i < 3; i++ {
+		p.Play("f")
+		p.wait()
+	}
+	if picks.Load() != 1 {
+		t.Fatalf("picks = %d, want 1", picks.Load())
+	}
+}

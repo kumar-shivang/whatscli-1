@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 
 	"github.com/PalWorks/whatscli/config"
-	"github.com/gen2brain/beeep"
 	_ "github.com/mattn/go-sqlite3" // SQLite driver
 
 	"go.mau.fi/whatsmeow"
@@ -63,6 +62,16 @@ type SessionManager struct {
 	chatSettingsOverride chatSettingsStore                                         // replaces client.Store.ChatSettings
 	appStateSender       func(ctx context.Context, patch appstate.PatchInfo) error // replaces client.SendAppState; also skips the connected check
 	muteDone             func()                                                    // called when a /mute or /unmute send finishes
+
+	// Notifications (notify_wiring.go). Set by initNotifications (from
+	// Init); a manager without them never notifies.
+	notifier  *notifier
+	sound     *soundPlayer
+	popupFunc func(title, body string) error // shows a pop-up; tests replace it
+	soundFunc func()                         // plays the sound (or the bell); tests replace it
+	notifyWG  sync.WaitGroup                 // pop-up and sound goroutines; tests wait on it
+	soundOnce sync.Once                      // resolves soundPath on first sound
+	soundPath string                         // sound file to play; "" means use the bell
 }
 
 // initialize the SessionManager
@@ -99,6 +108,7 @@ func (sm *SessionManager) Init(handler UiMessageHandler) error {
 	sm.ChatChannel = make(chan Chat, 10)
 	sm.TextChannel = make(chan *waProto.Message, 10)
 	sm.eventHandler = &eventHandler{sm: sm}
+	sm.initNotifications()
 
 	// Remove temp files left by downloads cut short by quitting (row 11).
 	sweepDownloadFolders(config.Config.General.DownloadPath, config.Config.General.PreviewPath)
@@ -241,16 +251,4 @@ func checkParam(arr []string, length int) bool {
 		return false
 	}
 	return true
-}
-
-// notify will send a notification via beeep if EnableNotification is true. If
-// UseTerminalBell is true it will send a terminal bell instead.
-func notify(title, message string) error {
-	if !config.Config.General.EnableNotifications {
-		return nil
-	} else if config.Config.General.UseTerminalBell {
-		_, err := fmt.Printf("\a")
-		return err
-	}
-	return beeep.Notify(title, message, "")
 }

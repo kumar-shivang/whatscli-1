@@ -95,10 +95,17 @@ func pickPlayer(goos string, lookPath func(string) (string, error), file string)
 }
 
 // soundPlayer plays notification sounds one at a time via a system player.
+// The player is looked up once, on first use, and cached; callers must pass
+// the same file on every call.
 type soundPlayer struct {
 	report func(error)
 	run    func(ctx context.Context, name string, args ...string) error
 	pick   func(file string) (string, []string, bool)
+
+	pickOnce sync.Once
+	cmd      string   // cached player command; set by resolve
+	args     []string // cached player arguments; set by resolve
+	found    bool     // whether a player was found; set by resolve
 
 	mu       sync.Mutex
 	playing  bool
@@ -118,6 +125,18 @@ func newSoundPlayer(report func(error)) *soundPlayer {
 			return pickPlayer(runtime.GOOS, exec.LookPath, file)
 		},
 	}
+}
+
+// resolve looks the player up for file the first time it is called.
+func (p *soundPlayer) resolve(file string) {
+	p.pickOnce.Do(func() { p.cmd, p.args, p.found = p.pick(file) })
+}
+
+// HasPlayer reports whether a system player is available for file. The
+// lookup happens once and is cached.
+func (p *soundPlayer) HasPlayer(file string) bool {
+	p.resolve(file)
+	return p.found
 }
 
 // Play plays file without blocking. A call made while a sound is already
@@ -148,14 +167,15 @@ func (p *soundPlayer) Play(file string) {
 	}()
 }
 
+// play runs the cached player on file with a timeout and waits for it.
 func (p *soundPlayer) play(file string) error {
-	cmd, args, ok := p.pick(file)
-	if !ok {
+	p.resolve(file)
+	if !p.found {
 		return fmt.Errorf("no audio player found for notification sound")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), soundPlayTimeout)
 	defer cancel()
-	return p.run(ctx, cmd, args...)
+	return p.run(ctx, p.cmd, p.args...)
 }
 
 // wait blocks until in-flight playback finishes (used by tests).
