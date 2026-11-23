@@ -24,6 +24,7 @@ func main() {
 	flag.Parse()
 
 	update.Current = appVersion()
+	update.CleanupOld()
 
 	err := config.InitConfig()
 	if err != nil {

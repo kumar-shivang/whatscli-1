@@ -123,13 +123,15 @@ All persistence goes through `MessageDatabase`; the WhatsApp session is kept sep
 
 ## Installation
 
-### Quick install (Linux and macOS)
+### Quick install (Linux, macOS, Windows)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kumar-shivang/whatscli-extended/master/install.sh | bash
 ```
 
-Installs the latest release of this fork for your OS and CPU (amd64 or arm64), checks its SHA-256 and puts `whatscli` in `/usr/local/bin` (or `~/.local/bin` if that is not writable). `WHATSCLI_VERSION=v1.7.3` picks a version and `INSTALL_DIR=...` the target. Inside the app, `/update` installs the newest release over the running binary and exits (not on Windows). Every merge to `master` is tagged `v1.7.N` and released automatically (`.github/workflows/auto-release.yml`).
+On Windows (PowerShell): `irm https://raw.githubusercontent.com/kumar-shivang/whatscli-extended/master/install.ps1 | iex` installs to `%LOCALAPPDATA%\whatscli` and adds it to your user PATH.
+
+Installs the latest release of this fork for your OS and CPU (amd64 or arm64), checks its SHA-256 and puts `whatscli` in `/usr/local/bin` (or `~/.local/bin` if that is not writable). `WHATSCLI_VERSION=v1.7.3` picks a version and `INSTALL_DIR=...` the target. Inside the app, `/update` installs the newest release over the running binary and exits. Every merge to `master` is tagged `v1.7.N` and released automatically (`.github/workflows/auto-release.yml`).
 
 ### Prebuilt binaries
 
