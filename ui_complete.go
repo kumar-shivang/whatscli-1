@@ -39,6 +39,7 @@ var commandHints = []commandHint{
 	{"disconnect", "", "Disconnect"},
 	{"download", "<msg-id>", "Download media"},
 	{"exit", "", "Exit (same as quit)"},
+	{"update", "", "Install the latest release, then exit"},
 	{"help", "", "Help"},
 	{"info", "", "Chat info"},
 	{"leave", "", "Leave group"},
