@@ -235,6 +235,7 @@ INI file, created with defaults on first run: `~/.config/whatscli/whatscli.confi
 | `command_help` | `Ctrl+g` | Help window (`Ctrl+g`, `F1` and `/help` always work too) |
 | `pick_file` | `Ctrl+o` | File picker: send files to the open chat |
 | `emoji_picker` | `Ctrl+t` | Emoji picker: add emoji to the input line (the same key closes it) |
+| `toggle_mouse` | `Ctrl+p` | Mouse on or off |
 | `copyuser` | `Ctrl+c` | Copy user ID |
 | `pasteuser` | `Ctrl+v` | Paste user ID |
 | `message_download` | `d` | Download |
@@ -463,6 +464,30 @@ Configurable under `[keymap]`.
 | `Ctrl+o` | File picker: pick files with fzf and send them to the open chat |
 | `Ctrl+t` | Emoji picker (also `/emoji`); `Ctrl+t` again closes it |
 | `Ctrl+c` / `Ctrl+v` | Copy and paste user ID |
+
+### VS Code mode
+
+VS Code's integrated terminal keeps most `Ctrl` keys for itself (`Ctrl+p` quick open, `Ctrl+e` go to file, `Ctrl+g` go to line, `Ctrl+b` sidebar, `Ctrl+n` new file, `Ctrl+q`, `Ctrl+o`, `Ctrl+t`, `F1`...). Start with `whatscli --vscode`, or set `vscode_mode = true` under `[ui]`, to use `Alt` keys instead:
+
+**Table K3: VS Code mode keys**
+
+| Key | Action |
+|---|---|
+| `Alt+s` | Find a chat |
+| `Alt+i` | Focus input |
+| `Alt+c` | Focus chat list |
+| `Alt+m` | Message selection |
+| `Alt+u` | Backlog |
+| `Alt+n` | Mark read |
+| `Alt+r` | Reconnect |
+| `Alt+h` | Help window |
+| `Alt+o` | File picker |
+| `Alt+e` | Emoji picker |
+| `Alt+x` | Mouse on or off |
+| `Alt+y` / `Alt+p` | Copy and paste user ID |
+| `Alt+q` | Quit |
+
+`Tab`, the message-mode letters and `/commands` are unchanged. Keys you changed in `[keymap]` are kept; only keys still at their default are replaced. On macOS set `"terminal.integrated.macOptionIsMeta": true` in VS Code so `Option` sends `Alt`. `Alt+b`, `Alt+f` and `Alt+d` are left alone because the input line uses them to move by word.
 
 **Table K2: Keys with a message highlighted**
 

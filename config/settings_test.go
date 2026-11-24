@@ -4,6 +4,7 @@ package config
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -92,5 +93,43 @@ func TestConfigNotificationDefaults(t *testing.T) {
 	}
 	if got.PlaySound || got.NotificationSound != "/tmp/x.wav" {
 		t.Errorf("ini not mapped: %+v", got)
+	}
+}
+
+func TestApplyVscodeMode(t *testing.T) {
+	saved := *Config.Keymap
+	savedUi := Config.Ui.VscodeMode
+	defer func() { *Config.Keymap = saved; Config.Ui.VscodeMode = savedUi }()
+
+	*Config.Keymap = *defaultKeymap()
+	Config.Keymap.FindChat = "Ctrl+k" // user customised: must survive
+	ApplyVscodeMode()
+
+	km := Config.Keymap
+	if km.FindChat != "Ctrl+k" {
+		t.Errorf("custom FindChat overwritten: %q", km.FindChat)
+	}
+	if km.CommandQuit != "Alt+q" || km.ToggleMouse != "Alt+x" || km.CommandHelp != "Alt+h" {
+		t.Errorf("preset not applied: %+v", km)
+	}
+	if km.SwitchPanels != "Tab" || km.MessageDownload != "d" {
+		t.Errorf("unrelated keys changed: %+v", km)
+	}
+
+	// no two global bindings collide, and none is a Ctrl key VS Code takes
+	seen := map[string]string{}
+	v := reflect.ValueOf(VscodeKeymap()).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		name, key := v.Type().Field(i).Name, v.Field(i).String()
+		if strings.HasPrefix(name, "Message") {
+			continue // plain letters in message mode
+		}
+		if prev, dup := seen[key]; dup {
+			t.Errorf("%s and %s share %q", prev, name, key)
+		}
+		seen[key] = name
+		if strings.HasPrefix(key, "Ctrl+") {
+			t.Errorf("%s still uses %s", name, key)
+		}
 	}
 }

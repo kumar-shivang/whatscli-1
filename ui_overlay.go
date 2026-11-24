@@ -24,6 +24,15 @@ import (
 // terminals send as the Backspace code.
 const helpKey = "Ctrl+g"
 
+// helpKeyFor is the help key to show: the keymap's command_help (which is
+// Ctrl+g unless changed or VS Code mode is on), else helpKey.
+func helpKeyFor(km *config.Keymap) string {
+	if km.CommandHelp != "" {
+		return km.CommandHelp
+	}
+	return helpKey
+}
+
 // overlay state; UI goroutine only.
 var (
 	pages        *tview.Pages
@@ -57,8 +66,8 @@ func helpText(km *config.Keymap, prefix string) string {
 		{km.CommandBacklog, "Ask the phone for older messages"},
 		{km.CommandRead, "Mark the chat read"},
 		{km.CommandConnect, "Reconnect"},
-		{"Ctrl+p", "Mouse on or off (off lets the terminal select text)"},
-		{helpKey + " / F1", "This help (also " + prefix + "help)"},
+		{km.ToggleMouse, "Mouse on or off (off lets the terminal select text)"},
+		{helpKeyFor(km) + " / F1", "This help (also " + prefix + "help)"},
 		{km.CommandQuit, "Quit"},
 	} {
 		b.WriteString(keyLine(l[0], l[1]) + "\n")
@@ -102,7 +111,7 @@ func welcomeText(km *config.Keymap, prefix string) string {
 		{prefix, "Start a command; a list shows what you can do"},
 		{km.EmojiPicker, "Add emoji to your message"},
 		{km.FocusMessages, "Select a message to download, open or delete it"},
-		{helpKey + " or " + prefix + "help", "Every key and command"},
+		{helpKeyFor(km) + " or " + prefix + "help", "Every key and command"},
 	} {
 		b.WriteString(keyLine(l[0], l[1]) + "\n")
 	}
@@ -196,7 +205,7 @@ func statusText(connected bool) string {
 // hintText is the right part of the top bar: the main keys.
 func hintText(km *config.Keymap, prefix string) string {
 	return fmt.Sprintf("[::d]%s[::-] Help   [::d]%s[::-] Find chat   [::d]%s[::-] Commands   [::d]%s[::-] Quit ",
-		helpKey, km.FindChat, prefix, km.CommandQuit)
+		helpKeyFor(km), km.FindChat, prefix, km.CommandQuit)
 }
 
 // overlayOpen reports whether a window covers the screen (scroll bars of the

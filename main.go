@@ -21,6 +21,7 @@ var VERSION string
 func main() {
 	// T-2: Parse --debug flag before anything else.
 	debugMode := flag.Bool("debug", false, "Enable verbose WhatsApp protocol logging")
+	vscode := flag.Bool("vscode", false, "VS Code friendly keys: Alt+letter instead of Ctrl keys VS Code's terminal intercepts")
 	flag.Parse()
 
 	update.Current = appVersion()
@@ -30,6 +31,10 @@ func main() {
 	if err != nil {
 		fmt.Printf("Failed to initialize config: %v\n", err)
 		return
+	}
+
+	if *vscode || config.Config.Ui.VscodeMode {
+		config.ApplyVscodeMode()
 	}
 
 	// Initialize the application context (replaces package-level globals)
