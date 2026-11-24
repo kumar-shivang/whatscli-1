@@ -39,6 +39,7 @@ var commandHints = []commandHint{
 	{"disconnect", "", "Disconnect"},
 	{"download", "<msg-id>", "Download media"},
 	{"exit", "", "Exit (same as quit)"},
+	{"vs-code-mode", "[on|off]", "Switch to Alt keys that do not collide with VS Code (this session)"},
 	{"update", "", "Install the latest release, then exit"},
 	{"help", "", "Help"},
 	{"info", "", "Chat info"},

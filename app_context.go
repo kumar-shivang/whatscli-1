@@ -34,6 +34,7 @@ type AppContext struct {
 	// Backend
 	SessionManager *messages.SessionManager
 	KeyBindings    *cbind.Configuration
+	HintBar        *tview.TextView // right part of the top bar
 	UiHandler      messages.UiMessageHandler
 }
 

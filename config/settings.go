@@ -5,6 +5,7 @@ package config
 import (
 	"os"
 	"os/user"
+	"reflect"
 
 	"github.com/adrg/xdg"
 	"gopkg.in/ini.v1"
@@ -61,11 +62,13 @@ type Keymap struct {
 	MessageRetry    string
 	MessageQuote    string
 	EmojiPicker     string // opens and closes the emoji picker (ui_emoji_picker.go)
+	ToggleMouse     string // mouse on or off
 }
 
 type Ui struct {
 	ChatSidebarWidth int
 	MessageStyle     string // "bubbles" (default) or "classic" (one line per message)
+	VscodeMode       bool   // Alt-based keys that VS Code's integrated terminal does not intercept (--vscode)
 }
 
 type Colors struct {
@@ -89,25 +92,9 @@ type Colors struct {
 	StatusRead      string
 }
 
-var Config = IniFile{
-	&General{
-		DownloadPath:        GetHomeDir() + "Downloads",
-		PreviewPath:         GetHomeDir() + "Downloads",
-		CmdPrefix:           "/",
-		ShowCommand:         "jp2a --color",
-		EnableNotifications: true,
-		UseTerminalBell:     false,
-		PlaySound:           true,
-		NotificationSound:   "",
-		NotificationTimeout: 60,
-		BacklogMsgQuantity:  10,
-		UploadSearchPath:    GetHomeDir(),
-		ImageExtensions:     "jpg,jpeg,png,webp",
-		VideoExtensions:     "mp4,3gp,mov,mkv,webm",
-		AudioExtensions:     "mp3,ogg,opus,m4a,aac,amr,wav",
-		SharePresence:       true,
-	},
-	&Keymap{
+// defaultKeymap returns the standard key bindings.
+func defaultKeymap() *Keymap {
+	return &Keymap{
 		SwitchPanels:    "Tab",
 		FocusMessages:   "Ctrl+w",
 		FocusInput:      "Ctrl+Space",
@@ -130,7 +117,78 @@ var Config = IniFile{
 		MessageRetry:    "t",
 		MessageQuote:    "q",
 		EmojiPicker:     "Ctrl+t",
+		ToggleMouse:     "Ctrl+p",
+	}
+}
+
+// VscodeKeymap returns the VS Code friendly bindings: Alt+letter instead of
+// the Ctrl keys VS Code's integrated terminal keeps for itself (quick open,
+// go to line, toggle sidebar, new file, F1 palette and so on). Alt+b, Alt+f
+// and Alt+d are skipped because the input line uses them to move by word.
+func VscodeKeymap() *Keymap {
+	km := defaultKeymap()
+	km.FocusMessages = "Alt+m"
+	km.FocusInput = "Alt+i"
+	km.FocusChats = "Alt+c"
+	km.FindChat = "Alt+s"
+	km.Copyuser = "Alt+y"
+	km.Pasteuser = "Alt+p"
+	km.CommandBacklog = "Alt+u"
+	km.CommandRead = "Alt+n"
+	km.CommandConnect = "Alt+r"
+	km.CommandQuit = "Alt+q"
+	km.CommandHelp = "Alt+h"
+	km.PickFile = "Alt+o"
+	km.EmojiPicker = "Alt+e"
+	km.ToggleMouse = "Alt+x"
+	return km
+}
+
+// swapKeys replaces every Config.Keymap key that still equals its value in
+// from with the matching value in to; keys the user customised are kept.
+func swapKeys(from, to *Keymap) {
+	f, t := reflect.ValueOf(from).Elem(), reflect.ValueOf(to).Elem()
+	cur := reflect.ValueOf(Config.Keymap).Elem()
+	for i := 0; i < cur.NumField(); i++ {
+		if cur.Field(i).String() == f.Field(i).String() {
+			cur.Field(i).SetString(t.Field(i).String())
+		}
+	}
+}
+
+// ApplyVscodeMode switches Config.Keymap to the VS Code friendly bindings.
+// A key the user changed in the config file is kept; only keys still at their
+// standard default are replaced.
+func ApplyVscodeMode() {
+	swapKeys(defaultKeymap(), VscodeKeymap())
+	Config.Ui.VscodeMode = true
+}
+
+// RevertVscodeMode switches back to the standard bindings.
+func RevertVscodeMode() {
+	swapKeys(VscodeKeymap(), defaultKeymap())
+	Config.Ui.VscodeMode = false
+}
+
+var Config = IniFile{
+	&General{
+		DownloadPath:        GetHomeDir() + "Downloads",
+		PreviewPath:         GetHomeDir() + "Downloads",
+		CmdPrefix:           "/",
+		ShowCommand:         "jp2a --color",
+		EnableNotifications: true,
+		UseTerminalBell:     false,
+		PlaySound:           true,
+		NotificationSound:   "",
+		NotificationTimeout: 60,
+		BacklogMsgQuantity:  10,
+		UploadSearchPath:    GetHomeDir(),
+		ImageExtensions:     "jpg,jpeg,png,webp",
+		VideoExtensions:     "mp4,3gp,mov,mkv,webm",
+		AudioExtensions:     "mp3,ogg,opus,m4a,aac,amr,wav",
+		SharePresence:       true,
 	},
+	defaultKeymap(),
 	&Ui{
 		ChatSidebarWidth: 30,
 		MessageStyle:     "bubbles",

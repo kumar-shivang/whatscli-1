@@ -21,21 +21,22 @@ var commandRegistry map[string]commandHandler
 func init() {
 	commandRegistry = map[string]commandHandler{
 		// Basic commands (cmd_basic.go)
-		"help":      cmdHelp,
-		"quit":      cmdQuit,
-		"exit":      cmdQuit, // alias
-		"update":    cmdUpdate,
-		"colorlist": cmdColorList,
-		"style":     cmdStyle,
-		"emoji":     cmdEmoji,
-		"edit":      cmdEdit,
-		"retry":     cmdRetry,
-		"mute":      cmdMute,
-		"unmute":    cmdUnmute,
-		"reply":     cmdReply,
-		"more":      cmdMore,
-		"info":      cmdInfo,
-		"read":      cmdRead,
+		"help":         cmdHelp,
+		"quit":         cmdQuit,
+		"exit":         cmdQuit, // alias
+		"update":       cmdUpdate,
+		"vs-code-mode": cmdVscodeMode,
+		"colorlist":    cmdColorList,
+		"style":        cmdStyle,
+		"emoji":        cmdEmoji,
+		"edit":         cmdEdit,
+		"retry":        cmdRetry,
+		"mute":         cmdMute,
+		"unmute":       cmdUnmute,
+		"reply":        cmdReply,
+		"more":         cmdMore,
+		"info":         cmdInfo,
+		"read":         cmdRead,
 
 		// Connection commands (cmd_connection.go)
 		"login":      cmdLogin,

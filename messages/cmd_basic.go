@@ -193,6 +193,21 @@ func cmdStyle(sm *SessionManager, client *whatsmeow.Client, cmdName string, para
 	sm.uiHandler.SetMessageStyle(style)
 }
 
+// cmdVscodeMode switches to VS Code friendly keys: "/vs-code-mode" toggles,
+// "/vs-code-mode on" or "off" picks one. For this session only; vscode_mode
+// under [ui] or --vscode is the default.
+func cmdVscodeMode(sm *SessionManager, client *whatsmeow.Client, cmdName string, params []string) {
+	mode := ""
+	if len(params) > 0 {
+		mode = strings.ToLower(params[0])
+		if len(params) > 1 || (mode != "on" && mode != "off") {
+			sm.printCommandUsage(cmdName, "[on|off]")
+			return
+		}
+	}
+	sm.uiHandler.SetVscodeMode(mode)
+}
+
 // cmdEmoji opens the emoji picker. It takes no parameters.
 func cmdEmoji(sm *SessionManager, client *whatsmeow.Client, cmdName string, params []string) {
 	if len(params) > 0 {
