@@ -5,14 +5,15 @@ package messages
 // MockUiHandler implements UiMessageHandler for testing.
 // It captures all calls so tests can assert on them.
 type MockUiHandler struct {
-	Texts     []string
-	Errors    []error
-	Files     []string
-	QRCodes   []string
-	Statuses  []SessionStatus
-	ChatLists [][]*Conversation
-	ChatSets  [][]Chat
-	Screens   [][]Message
+	Texts       []string
+	VscodeModes []string
+	Errors      []error
+	Files       []string
+	QRCodes     []string
+	Statuses    []SessionStatus
+	ChatLists   [][]*Conversation
+	ChatSets    [][]Chat
+	Screens     [][]Message
 	// ScreenTexts holds the status printed with each NewScreenWithStatus.
 	ScreenTexts []string
 	Messages    []Message
@@ -46,6 +47,7 @@ func (m *MockUiHandler) SetStatus(s SessionStatus)        { m.Statuses = append(
 func (m *MockUiHandler) ShowColorList()                   { m.ColorCalled++ }
 func (m *MockUiHandler) Clear()                           { m.ClearCalled++ }
 func (m *MockUiHandler) SetMessageStyle(style string)     { m.Styles = append(m.Styles, style) }
+func (m *MockUiHandler) SetVscodeMode(mode string)        { m.VscodeModes = append(m.VscodeModes, mode) }
 func (m *MockUiHandler) OpenEmojiPicker()                 { m.EmojiOpened++ }
 func (m *MockUiHandler) SetChatActivity(chat, text string) {
 	m.Activity = append(m.Activity, chat+"|"+text)

@@ -67,6 +67,7 @@ func main() {
 	ctx.TopBar.SetBackgroundColor(tcell.ColorNames[config.Config.Colors.Background])
 	hintBar := tview.NewTextView().SetDynamicColors(true).SetScrollable(false).SetTextAlign(tview.AlignRight)
 	hintBar.SetText(hintText(config.Config.Keymap, cmdPrefix))
+	ctx.HintBar = hintBar
 	hintBar.SetBackgroundColor(tcell.ColorNames[config.Config.Colors.Background])
 	topBar := tview.NewFlex().AddItem(ctx.TopBar, 0, 1, false).AddItem(hintBar, 0, 1, false)
 

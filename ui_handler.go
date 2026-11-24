@@ -196,6 +196,31 @@ func (u UiHandler) SetMessageStyle(style string) {
 	go ctx.App.QueueUpdateDraw(func() { applyMessageStyle(style) })
 }
 
+// SetVscodeMode switches the key bindings (the /vs-code-mode command).
+func (u UiHandler) SetVscodeMode(mode string) {
+	go ctx.App.QueueUpdateDraw(func() { applyVscodeMode(mode) })
+}
+
+// applyVscodeMode changes the key set, rebinds every key and refreshes the
+// top bar hint. UI goroutine only.
+func applyVscodeMode(mode string) {
+	on := mode == "on" || (mode == "" && !config.Config.Ui.VscodeMode)
+	if on {
+		config.ApplyVscodeMode()
+	} else {
+		config.RevertVscodeMode()
+	}
+	LoadShortcuts()
+	if ctx.HintBar != nil {
+		ctx.HintBar.SetText(hintText(config.Config.Keymap, config.Config.General.CmdPrefix))
+	}
+	state := "off: standard keys"
+	if on {
+		state = "on: Alt keys"
+	}
+	PrintText("[::d]VS Code mode " + state + " (" + helpKeyFor(config.Config.Keymap) + " for help; set vscode_mode under [ui] to keep it)[::-]")
+}
+
 // OpenEmojiPicker opens the emoji picker (the /emoji command).
 func (u UiHandler) OpenEmojiPicker() {
 	go ctx.App.QueueUpdateDraw(func() { openEmojiPicker(true) })

@@ -30,6 +30,9 @@ type UiMessageHandler interface {
 	// SetMessageStyle switches the message pane between "bubbles" and
 	// "classic"; "" toggles between them.
 	SetMessageStyle(style string)
+	// SetVscodeMode switches the key bindings to the VS Code friendly set
+	// ("on"), back to the standard set ("off"), or toggles ("").
+	SetVscodeMode(mode string)
 	// OpenEmojiPicker opens the emoji picker over the main screen; a picked
 	// emoji goes into the input line at the cursor.
 	OpenEmojiPicker()

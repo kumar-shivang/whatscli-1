@@ -144,18 +144,30 @@ func VscodeKeymap() *Keymap {
 	return km
 }
 
+// swapKeys replaces every Config.Keymap key that still equals its value in
+// from with the matching value in to; keys the user customised are kept.
+func swapKeys(from, to *Keymap) {
+	f, t := reflect.ValueOf(from).Elem(), reflect.ValueOf(to).Elem()
+	cur := reflect.ValueOf(Config.Keymap).Elem()
+	for i := 0; i < cur.NumField(); i++ {
+		if cur.Field(i).String() == f.Field(i).String() {
+			cur.Field(i).SetString(t.Field(i).String())
+		}
+	}
+}
+
 // ApplyVscodeMode switches Config.Keymap to the VS Code friendly bindings.
 // A key the user changed in the config file is kept; only keys still at their
 // standard default are replaced.
 func ApplyVscodeMode() {
-	def, vs := reflect.ValueOf(defaultKeymap()).Elem(), reflect.ValueOf(VscodeKeymap()).Elem()
-	cur := reflect.ValueOf(Config.Keymap).Elem()
-	for i := 0; i < cur.NumField(); i++ {
-		if cur.Field(i).String() == def.Field(i).String() {
-			cur.Field(i).SetString(vs.Field(i).String())
-		}
-	}
+	swapKeys(defaultKeymap(), VscodeKeymap())
 	Config.Ui.VscodeMode = true
+}
+
+// RevertVscodeMode switches back to the standard bindings.
+func RevertVscodeMode() {
+	swapKeys(VscodeKeymap(), defaultKeymap())
+	Config.Ui.VscodeMode = false
 }
 
 var Config = IniFile{

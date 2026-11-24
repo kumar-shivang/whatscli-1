@@ -467,7 +467,7 @@ Configurable under `[keymap]`.
 
 ### VS Code mode
 
-VS Code's integrated terminal keeps most `Ctrl` keys for itself (`Ctrl+p` quick open, `Ctrl+e` go to file, `Ctrl+g` go to line, `Ctrl+b` sidebar, `Ctrl+n` new file, `Ctrl+q`, `Ctrl+o`, `Ctrl+t`, `F1`...). Start with `whatscli --vscode`, or set `vscode_mode = true` under `[ui]`, to use `Alt` keys instead:
+VS Code's integrated terminal keeps most `Ctrl` keys for itself (`Ctrl+p` quick open, `Ctrl+e` go to file, `Ctrl+g` go to line, `Ctrl+b` sidebar, `Ctrl+n` new file, `Ctrl+q`, `Ctrl+o`, `Ctrl+t`, `F1`...). Start with `whatscli --vscode`, set `vscode_mode = true` under `[ui]`, or type `/vs-code-mode` (`on`, `off`, or no argument to toggle; this session only) to use `Alt` keys instead:
 
 **Table K3: VS Code mode keys**
 

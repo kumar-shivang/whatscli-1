@@ -133,3 +133,19 @@ func TestApplyVscodeMode(t *testing.T) {
 		}
 	}
 }
+
+func TestRevertVscodeMode(t *testing.T) {
+	saved := *Config.Keymap
+	savedUi := Config.Ui.VscodeMode
+	defer func() { *Config.Keymap = saved; Config.Ui.VscodeMode = savedUi }()
+
+	*Config.Keymap = *defaultKeymap()
+	Config.Keymap.FindChat = "Ctrl+k"
+	ApplyVscodeMode()
+	RevertVscodeMode()
+	want := *defaultKeymap()
+	want.FindChat = "Ctrl+k"
+	if *Config.Keymap != want || Config.Ui.VscodeMode {
+		t.Errorf("revert did not restore: %+v", *Config.Keymap)
+	}
+}
